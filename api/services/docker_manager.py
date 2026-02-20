@@ -17,6 +17,108 @@ except Exception as e:
     docker_client = None
 
 
+THEME_CONFIG = {
+    "fashion": {
+        "title": "Fashion & Apparel Store",
+        "emoji": "👗",
+        "color": "#ec4899",
+        "gradient": "linear-gradient(135deg, #ec4899, #8b5cf6)",
+        "description": "Discover the latest trends in fashion and style.",
+    },
+    "electronics": {
+        "title": "Tech & Electronics Store",
+        "emoji": "⚡",
+        "color": "#3b82f6",
+        "gradient": "linear-gradient(135deg, #3b82f6, #06b6d4)",
+        "description": "Cutting-edge technology at your fingertips.",
+    },
+    "minimal": {
+        "title": "Minimal Concept Store",
+        "emoji": "🪴",
+        "color": "#10b981",
+        "gradient": "linear-gradient(135deg, #10b981, #6366f1)",
+        "description": "Less is more. Curated essentials for modern living.",
+    },
+}
+
+def generate_storefront_html(tenant_dir: str, tenant_name: str, theme: str, domain: str) -> None:
+    """
+    Generates a styled storefront placeholder HTML file served by nginx:alpine.
+    This allows the full provisioning flow to work without needing a custom
+    Next.js image built and pushed to a registry.
+    """
+    cfg = THEME_CONFIG.get(theme, THEME_CONFIG["fashion"])
+    store_url = f"http://{tenant_name}.{domain}"
+    admin_url = f"http://admin.{tenant_name}.{domain}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{cfg['title']} — {tenant_name}</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }}
+    .hero {{
+      text-align: center; padding: 60px 24px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px; max-width: 600px; width: 100%;
+    }}
+    .emoji {{ font-size: 80px; margin-bottom: 24px; display: block; }}
+    .badge {{
+      display: inline-block; padding: 6px 16px; border-radius: 99px;
+      background: {cfg['color']}20; color: {cfg['color']};
+      font-size: 12px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 20px; border: 1px solid {cfg['color']}40;
+    }}
+    h1 {{ font-size: 2.5rem; font-weight: 800; margin-bottom: 12px;
+      background: {cfg['gradient']}; -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text; }}
+    p {{ color: #94a3b8; font-size: 1.1rem; line-height: 1.6; margin-bottom: 32px; }}
+    .store-name {{
+      font-size: 1rem; color: #64748b;
+      background: rgba(255,255,255,0.04); padding: 10px 20px;
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);
+      font-family: monospace; margin-bottom: 32px; display: inline-block;
+    }}
+    .cta {{
+      display: inline-block; padding: 14px 32px; border-radius: 12px;
+      background: {cfg['gradient']}; color: white;
+      font-weight: 700; font-size: 1rem; text-decoration: none;
+      box-shadow: 0 8px 32px {cfg['color']}40;
+    }}
+    .footer {{ margin-top: 48px; color: #334155; font-size: 0.8rem; }}
+    .footer a {{ color: #64748b; text-decoration: none; }}
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <span class="emoji">{cfg['emoji']}</span>
+    <div class="badge">{theme} theme</div>
+    <h1>{tenant_name}</h1>
+    <p>{cfg['description']}</p>
+    <div class="store-name">{store_url}</div>
+    <br>
+    <a href="{admin_url}" class="cta">Open Admin Panel →</a>
+  </div>
+  <div class="footer">
+    Powered by <a href="#">SaaS Platform</a> &nbsp;·&nbsp; Tenant: {tenant_name}
+  </div>
+</body>
+</html>"""
+
+    html_path = os.path.join(tenant_dir, "storefront.html")
+    with open(html_path, "w") as f:
+        f.write(html)
+    logger.info(json.dumps({"event": "storefront_html_written", "path": html_path, "theme": theme}))
+
+
 def render_env_file(tenant_dir: str, context: Dict) -> None:
     """Renders the .env file for a tenant from the provisioned credentials."""
     env_content = f"""# Auto-generated .env for tenant {context['TENANT_NAME']}
@@ -93,6 +195,7 @@ def start_tenant_containers(tenant_name: str, theme: str, db_credentials: dict) 
         **db_credentials,
     }
     render_env_file(tenant_dir, context)
+    generate_storefront_html(tenant_dir, tenant_name, theme, settings.DOMAIN)
 
     logger.info(json.dumps({"event": "docker_compose_up", "tenant": tenant_name, "dir": tenant_dir}))
 

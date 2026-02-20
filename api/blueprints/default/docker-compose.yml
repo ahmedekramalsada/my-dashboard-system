@@ -1,52 +1,61 @@
-# This is the master blueprint that the API copies for each new tenant
-# It defines how Medusa and the Storefront spin up for this specific store
+# =============================================================================
+# Tenant Blueprint — copied per tenant by the Provisioning API
+# Variables like ${TENANT_NAME}, ${DOMAIN}, ${THEME} are substituted
+# from the .env file rendered by docker_manager.py at provision time.
+# =============================================================================
 
 services:
-  # 1. MedusaJS Backend Container
+
+  # ---------------------------------------------------------------------------
+  # MedusaJS Backend (Headless E-commerce Engine)
+  # ---------------------------------------------------------------------------
   medusa:
-    image: medusajs/medusa:latest # Or a custom built image with your logic
+    image: medusajs/medusa:latest
     container_name: medusa-${TENANT_NAME}
     restart: always
     environment:
-      # Inject Postgres credentials provisioned by our API
       - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-      - JWT_SECRET=supersecret_${TENANT_NAME}
-      - COOKIE_SECRET=cookiesecret_${TENANT_NAME}
-      - REDIS_URL=redis://redis:6379 # Shared or per-tenant redis
+      - JWT_SECRET=jwt_${TENANT_NAME}_secret
+      - COOKIE_SECRET=cookie_${TENANT_NAME}_secret
+      - REDIS_URL=redis://redis:6379
       - STORE_CORS=http://${TENANT_NAME}.${DOMAIN}
       - ADMIN_CORS=http://admin.${TENANT_NAME}.${DOMAIN}
+      - NODE_ENV=development
+    depends_on:
+      - redis
     labels:
       - "traefik.enable=true"
-      # Route requests matching admin.storename.domain.com to this backend container
       - "traefik.http.routers.admin-${TENANT_NAME}.rule=Host(`admin.${TENANT_NAME}.${DOMAIN}`)"
       - "traefik.http.routers.admin-${TENANT_NAME}.entrypoints=web"
-      # - "traefik.http.routers.admin-${TENANT_NAME}.tls=true"
-      # - "traefik.http.routers.admin-${TENANT_NAME}.tls.certresolver=myresolver"
+      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=9000"
 
-  # 2. Next.js Storefront Container
+  # ---------------------------------------------------------------------------
+  # Storefront — nginx:alpine serving a generated themed HTML file
+  # storefront.html is written by docker_manager.py at provision time.
+  # Replace with a real Next.js image when available:
+  #   image: your-registry/storefront:${THEME}
+  # ---------------------------------------------------------------------------
   storefront:
-    # Use the selected theme image (e.g. my-registry/storefront:fashion or storefront:electronics)
-    image: my-registry/storefront:${THEME} 
+    image: nginx:alpine
     container_name: storefront-${TENANT_NAME}
     restart: always
-    environment:
-      # Link storefront to this tenant's medusa backend API
-      - NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://medusa:9000
+    volumes:
+      - ./storefront.html:/usr/share/nginx/html/index.html:ro
     labels:
       - "traefik.enable=true"
-      # Route requests matching storename.domain.com to the storefront
       - "traefik.http.routers.store-${TENANT_NAME}.rule=Host(`${TENANT_NAME}.${DOMAIN}`)"
       - "traefik.http.routers.store-${TENANT_NAME}.entrypoints=web"
-      # - "traefik.http.routers.store-${TENANT_NAME}.tls=true"
-      # - "traefik.http.routers.store-${TENANT_NAME}.tls.certresolver=myresolver"
+      - "traefik.http.services.store-${TENANT_NAME}.loadbalancer.server.port=80"
 
-  # Optional but recommended for Medusa Job queue / caching
+  # ---------------------------------------------------------------------------
+  # Redis — required by MedusaJS for job queue and caching
+  # ---------------------------------------------------------------------------
   redis:
     image: redis:alpine
     container_name: redis-${TENANT_NAME}
     restart: always
 
-# Connect tenant to the shared Traefik network
+# All tenant containers join the shared Traefik network
 networks:
   default:
     name: traefik_default
