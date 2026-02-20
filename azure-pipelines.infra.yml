@@ -24,7 +24,7 @@ stages:
             inputs:
               provider: "aws"
               command: "init"
-              workingDirectory: "terraform"
+              workingDirectory: "my-dashboard-system/terraform"
               backendServiceAWS: "aws-terraform-connection"
               backendAWSBucketName: "my-dashboard-s3"
               backendAWSKey: "infrastructure/terraform.tfstate"
@@ -35,7 +35,7 @@ stages:
             inputs:
               provider: "aws"
               command: "plan"
-              workingDirectory: "terraform"
+              workingDirectory: "my-dashboard-system/terraform"
               environmentServiceNameAWS: "aws-terraform-connection"
 
   - stage: TerraformApply
@@ -50,7 +50,7 @@ stages:
             inputs:
               provider: "aws"
               command: "init"
-              workingDirectory: "terraform"
+              workingDirectory: "my-dashboard-system/terraform"
               backendServiceAWS: "aws-terraform-connection"
               backendAWSBucketName: "my-dashboard-s3"
               backendAWSKey: "infrastructure/terraform.tfstate"
@@ -61,6 +61,6 @@ stages:
             inputs:
               provider: "aws"
               command: "apply"
-              workingDirectory: "terraform"
+              workingDirectory: "my-dashboard-system/terraform"
               commandOptions: "-auto-approve"
               environmentServiceNameAWS: "aws-terraform-connection"
