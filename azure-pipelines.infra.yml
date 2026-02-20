@@ -19,6 +19,12 @@ stages:
     jobs:
       - job: Plan
         steps:
+          - script: |
+              curl -sL https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip -o terraform.zip
+              unzip terraform.zip
+              sudo mv terraform /usr/local/bin/
+            displayName: "Install Terraform"
+
           - task: AWSShellScript@1
             displayName: "Terraform Init and Plan"
             inputs:
