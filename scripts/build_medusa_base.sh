@@ -46,7 +46,7 @@ COPY . .
 RUN yarn install
 
 # Build the application (compiles TypeScript to JS & builds admin UI)
-RUN yarn build
+RUN npx @medusajs/medusa-cli@latest build
 
 EXPOSE 9000
 
