@@ -59,3 +59,5 @@ steps:
       command: 'destroy'
       workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
       environmentServiceNameAWS: 'aws-terraform-connection'
+    env:
+      TF_VAR_key_name: $(key_name)
