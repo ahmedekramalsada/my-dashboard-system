@@ -86,6 +86,14 @@ resource "aws_security_group" "saas_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "Super Admin Dashboard (Direct Port)"
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -128,7 +136,7 @@ resource "aws_instance" "saas_server" {
   tags = {
     Name = "SaaS-Platform-Server"
   }
-  
+
   root_block_device {
     volume_size = 50 # GB for Docker Images & DB Data
     volume_type = "gp3"
