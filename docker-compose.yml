@@ -51,7 +51,11 @@ services:
       # CRITICAL: bind-mount the Docker socket so the API can manage sibling containers
       - /var/run/docker.sock:/var/run/docker.sock
       # Shared tenants volume — the API writes compose files here; Docker reads them
-      - tenants-data:/opt/saas/tenants
+      # CRITICAL: Mount /opt/saas/tenants as a HOST bind-mount (not a named volume).
+      # The API writes storefront.html/admin.html here; tenant containers also
+      # bind-mount files from this exact host path. Named volumes don't expose
+      # the underlying host path to sibling docker compose invocations.
+      - /opt/saas/tenants:/opt/saas/tenants
     ports:
       - "8000:8000"
     labels:
@@ -80,8 +84,6 @@ services:
 # =============================================================================
 volumes:
   pg-data:
-    driver: local
-  tenants-data:
     driver: local
 
 # =============================================================================
