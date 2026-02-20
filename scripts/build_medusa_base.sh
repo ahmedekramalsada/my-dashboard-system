@@ -46,7 +46,8 @@ COPY . .
 RUN yarn install
 
 # Build the application (compiles TypeScript to JS & builds admin UI)
-RUN npx medusa build
+# Medusa v2 build step requires a dummy DATABASE_URL to avoid crashing while parsing config
+RUN DATABASE_URL=postgres://dummy:dummy@localhost:5432/dummy yarn build
 
 EXPOSE 9000
 
