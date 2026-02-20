@@ -46,23 +46,25 @@ A production-ready, multi-tenant SaaS e-commerce platform. Each tenant gets thei
 
 ---
 
-## 🔴 Fixes Applied (v2)
+## 🔴 Fixes Applied (v3)
 
 | # | File | Fix |
 |---|------|-----|
 | 1 | `docker-compose.yml` | Added missing `shared-postgres` service with healthcheck |
 | 2 | `main.py` | Removed `docker_client` name collision (shadowing import) |
-| 3 | `main.py` | Added CORS middleware — dashboard was blocked by browser |
+| 3 | `main.py` | Added CORS middleware with secure `CORS_ORIGINS` setting |
 | 4 | `Dockerfile` | Install `docker-ce-cli` so `subprocess docker compose` works |
-| 5 | `main.py` | Fixed `/stores-status` broken regex filter (pipe `\|` is not valid) |
-| 6 | `user_data.sh` | Create `traefik_default` network before starting services |
+| 5 | `main.py` | Fixed `/stores-status` broken regex filter |
+| 6 | `user_data.sh` | Create `traefik_default` network + set `DOCKER_API_VERSION=1.44` |
 | 7 | `azure-pipelines.yml` | Added `-auto-approve` — pipeline was hanging indefinitely |
-| 8 | `user_data.sh` + `variables.tf` | Parameterize DB password via Terraform variable (secret) |
-| 9 | `dashboard.html` | Dynamic domain — no more hardcoded `.example.com` |
+| 8 | `user_data.sh` | Parameterize DB password via Terraform variable (secret) |
+| 9 | `dashboard.html` | Dynamic domain via `nip.io` when accessed by IP |
 | 10 | `dashboard.html` | Real `/health` API check drives the badge (red/green) |
-| 11 | `api/core/` + `api/services/` | Added `__init__.py` for proper Python packages |
-| 12 | `docker_manager.py` | Removed dangerous blueprint auto-stub generator |
+| 11 | `api/blueprints/` | Replaced missing `storefront:fashion` and `medusajs/medusa` images with `nginx:alpine` and dynamically generated HTML placeholders |
+| 12 | `docker_manager.py` | Removed scary stub generator, added HTML generators |
 | 13 | `requirements.txt` | Upgraded to latest stable versions |
+| 14 | `docker-compose.yml` | Replaced named volume with host bind-mount `/opt/saas/tenants` so sibling containers can mount generated HTML files |
+| 15 | `docker-compose.yml` | Added `healthcheck` to `saas-api` |
 
 ---
 
@@ -96,14 +98,21 @@ ssh -i my-aws-key.pem ubuntu@<EC2_PUBLIC_IP>
 git clone <this-repo> /opt/saas/control-plane
 cd /opt/saas/control-plane
 
-export DOMAIN="yourdomain.com"
-export DB_ROOT_PASSWORD="your-secret-password"  # Same as TF_VAR_db_password
+# Copy environment variables and adjust as needed
+cat > .env << EOF
+DOMAIN=<EC2_PUBLIC_IP>.nip.io
+DB_ROOT_USER=root
+DB_ROOT_PASSWORD=your-secret-password
+DB_ROOT_NAME=defaultdb
+CORS_ORIGINS=["*"]
+EOF
+
 docker compose up -d --build
 ```
 
 ### 4. Access the Dashboard
-- **Super Admin**: `http://superadmin.yourdomain.com` (or `http://<IP>:8081`)
-- **API**: `http://api.admin.yourdomain.com` (or `http://<IP>:8000`)
+- **Super Admin**: `http://superadmin.<EC2_PUBLIC_IP>.nip.io` (or `http://<IP>:8081`)
+- **API**: `http://api.admin.<EC2_PUBLIC_IP>.nip.io` (or `http://<IP>:8000`)
 - **API Docs**: `http://<IP>:8000/docs`
 
 ### 5. Provision a Tenant via Dashboard
@@ -111,7 +120,7 @@ docker compose up -d --build
 2. Pick a theme (Fashion / Electronics / Minimal)
 3. Click **Deploy Tenant**
 4. The API creates `db_shoes` + `user_shoes` in Postgres, copies the blueprint, runs `docker compose up -d`
-5. Traefik auto-routes `shoes.yourdomain.com` → storefront and `admin.shoes.yourdomain.com` → Medusa
+5. Traefik auto-routes `shoes.<DOMAIN>` → storefront and `admin.shoes.<DOMAIN>` → Medusa
 
 ---
 
@@ -125,6 +134,8 @@ docker compose up -d --build
 | **Dynamic Routing** | Traefik auto-discovers containers via Docker socket — zero manual config |
 | **Secret Management** | DB password injected as Terraform `sensitive` variable from pipeline secrets |
 | **JSON Logging** | All API events emit structured JSON for log aggregator ingestion |
+| **Healthchecks** | API and Shared DB actively checked for uptime to ensure proper orchestration |
+| **Strict Security** | Customizable CORS origins via `.env` file |
 
 ---
 

@@ -36,7 +36,7 @@ app = FastAPI(title="SaaS Provisioning Engine", version="1.0.0")
 # In production, lock 'allow_origins' down to your specific admin domain.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

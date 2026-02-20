@@ -56,6 +56,11 @@ services:
       # bind-mount files from this exact host path. Named volumes don't expose
       # the underlying host path to sibling docker compose invocations.
       - /opt/saas/tenants:/opt/saas/tenants
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     ports:
       - "8000:8000"
     labels:

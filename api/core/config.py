@@ -1,11 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, Field
 import os
 
 class Settings(BaseSettings):
     # Base configuration
     PROJECT_NAME: str = "SaaS Provisioning API"
-    DOMAIN: str = os.getenv("DOMAIN", "example.com")
-    
+    DOMAIN: str = Field("example.com", env="DOMAIN")
+
+    # Security: Restrict CORS origins in production
+    CORS_ORIGINS: list[str] = Field(["*"], env="CORS_ORIGINS")
+
     # Shared Postgres Database Configuration (For provisioning)
     # The API needs admin credentials to the shared DB to create tenant databases and roles
     DB_HOST: str = os.getenv("DB_HOST", "shared-postgres")
