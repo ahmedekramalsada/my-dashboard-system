@@ -36,8 +36,8 @@ def copy_blueprint(tenant_name: str, theme: str) -> str:
     Copies the blueprint (docker-compose template) to a new tenant directory.
     To be fully idempotent, it overwrites if it already exists.
     """
-    # Assuming blueprints are injected or built into the api container at /app/blueprints
-    blueprint_src = f"/app/blueprints/{theme}" 
+    # Fix: API runs from /app, but blueprints are relative to the current working directory natively.
+    blueprint_src = os.path.join(os.path.dirname(__file__), "..", "blueprints", "default")
     tenant_dir = os.path.join(settings.TENANTS_DIR, tenant_name)
     
     # In a real scenario, make sure the blueprint exists

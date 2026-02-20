@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Super Admin - Command Center</title>
+    <!-- Tailwind CSS for rapid UI building (Vibrant, Modern, Dark Mode default) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6', // Violet
+                            600: '#7c3aed',
+                            900: '#4c1d95',
+                        },
+                        dark: {
+                            bg: '#0f172a', // Slate 900
+                            card: '#1e293b', // Slate 800
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Glassmorphism effects */
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Smooth transitions */
+        .transition-all {
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 300ms;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-slate-300 font-sans antialiased min-h-screen flex flex-col items-center p-6 dark">
+
+    <!-- Header -->
+    <header class="w-full max-w-6xl flex justify-between items-center py-6 mb-8 border-b border-slate-700/50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
+                S
+            </div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Super Admin <span class="text-brand-500">Command</span></h1>
+        </div>
+        <div class="flex items-center gap-4 text-sm font-medium">
+            <span class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                API Connected
+            </span>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Left Column: Form -->
+        <div class="lg:col-span-1 flex flex-col gap-6">
+            <div class="glass rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                <!-- Decorative glow -->
+                <div class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500"></div>
+                
+                <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    </svg>
+                    Provision New Tenant
+                </h2>
+                
+                <form id="createStoreForm" class="flex flex-col gap-5 relative z-10">
+                    <div>
+                        <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store Subdomain</label>
+                        <div class="relative">
+                            <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes" required
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                            <span class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none">.example.com</span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Storefront Theme</label>
+                        <select id="theme" name="theme" 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                            <option value="fashion">Fashion & Apparel (Default)</option>
+                            <option value="electronics">Tech & Electronics</option>
+                            <option value="minimal">Minimalist Concept</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="submitBtn"
+                        class="mt-2 w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:from-brand-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                        <span>Deploy Tenant</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                    <!-- Loading Spinner (Hidden by default) -->
+                    <div id="loadingIndicator" class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
+                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Provisioning Architecture...
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Global Stats Widget -->
+            <div class="glass rounded-2xl p-6 shadow-lg flex-1">
+                 <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
+                 <div class="grid grid-cols-2 gap-4">
+                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                         <div class="text-3xl font-bold text-white mb-1" id="stat-active">0</div>
+                         <div class="text-xs text-slate-400">Active Tenants</div>
+                     </div>
+                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                         <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">100%</div>
+                         <div class="text-xs text-slate-400">System Health</div>
+                     </div>
+                 </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Tenant List -->
+        <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col h-[600px] overflow-hidden">
+            <div class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-dark-card/50">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+                    </svg>
+                    Active Environments
+                </h2>
+                <button onclick="fetchStores()" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-2" id="tenantsList">
+                <!-- Tenants will be injected here via JS -->
+                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <p>No active tenants found. Provision one from the left panel.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3">
+        <!-- Icon injected by JS -->
+        <div id="toastIcon"></div>
+        <div>
+            <h4 id="toastTitle" class="text-sm font-bold text-white m-0">Notification</h4>
+            <p id="toastMessage" class="text-xs text-slate-300 m-0 mt-0.5">Message goes here</p>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const API_BASE = 'http://localhost:8000'; // Make sure this matches your FastAPI server when running locally
+        
+        // --- UI Helpers ---
+        function showToast(title, message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `fixed bottom-6 right-6 transform translate-y-0 opacity-100 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 border-${type === 'error' ? 'red-500' : 'brand-500'}`;
+            
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            
+            const icon = type === 'error' 
+                ? `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+                : `<svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            document.getElementById('toastIcon').innerHTML = icon;
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 5000);
+        }
+
+        function renderTenants(containers) {
+            const list = document.getElementById('tenantsList');
+            
+            // Deduplicate to show logic "Tenants" rather than 2 containers per tenant
+            // A simple implementation for the demo: group by tenant name prefix
+            const tenantsMap_medusa = containers.filter(c => c.name.startsWith('medusa-'));
+            
+            if (!tenantsMap_medusa || tenantsMap_medusa.length === 0) {
+                document.getElementById('stat-active').innerText = "0";
+                list.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p>No active tenants found. Provision one from the left panel.</p>
+                    </div>`;
+                return;
+            }
+
+            document.getElementById('stat-active').innerText = tenantsMap_medusa.length;
+            
+            let html = '<div class="grid grid-cols-1 gap-3 p-4">';
+            tenantsMap_medusa.forEach(container => {
+                const tenantName = container.name.replace('medusa-', '');
+                const isRunning = container.status === 'running';
+                
+                html += `
+                <div class="bg-slate-900/80 hover:bg-slate-800 transition-colors border border-slate-700/50 rounded-xl p-4 flex items-center justify-between group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shadow-inner">
+                            <span class="text-xl font-bold text-slate-300">${tenantName.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-white text-lg m-0 flex items-center gap-2">
+                                ${tenantName}
+                                <span class="flex h-2 w-2 relative">
+                                  ${isRunning ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>' : '<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>'}
+                                </span>
+                            </h4>
+                            <div class="flex gap-3 text-xs text-slate-400 mt-1">
+                                <a href="http://${tenantName}.example.com" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Storefront ↗</a>
+                                <a href="http://admin.${tenantName}.example.com" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Admin ↗</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <button onclick="deleteStore('${tenantName}')" class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Delete Tenant (Irreversible)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                `;
+            });
+            html += '</div>';
+            list.innerHTML = html;
+        }
+
+        // --- API Interactions ---
+
+        async function fetchStores() {
+            try {
+                const response = await fetch(`${API_BASE}/stores-status`);
+                if (!response.ok) throw new Error("Failed to fetch status");
+                const data = await response.json();
+                
+                if (data.running_containers) {
+                     renderTenants(data.running_containers);
+                }
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                // Fail silently for dashboard loading state, show toast on manual refresh
+            }
+        }
+
+        async function deleteStore(tenantName) {
+            if(!confirm(`WARNING: Are you sure you want to completely delete ${tenantName}? This action destroys the database schema, all data, and stops the containers. This cannot be undone.`)){
+                return;
+            }
+
+            try {
+                showToast("Terminating...", `Tearing down infrastructure for ${tenantName}`);
+                const response = await fetch(`${API_BASE}/delete-store`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_name: tenantName })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast("Success", data.message);
+                    fetchStores();
+                } else {
+                    throw new Error(data.detail || "Deletion failed");
+                }
+            } catch (error) {
+                showToast("Error", error.message, "error");
+            }
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('createStoreForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loadingIndicator');
+            const tenantName = document.getElementById('tenantName').value.trim();
+            const theme = document.getElementById('theme').value;
+            
+            if(!tenantName) return;
+
+            // UI Loading state
+            btn.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE}/create-store`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_name: tenantName, theme: theme })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showToast('Provisioned Successfully', `Tenant ${tenantName} is now live and routing online.`);
+                    document.getElementById('createStoreForm').reset();
+                    // Small delay to let docker catch up before refreshing list
+                    setTimeout(fetchStores, 1000);
+                } else {
+                    throw new Error(data.detail || "Unknown error occurred");
+                }
+
+            } catch (error) {
+                showToast('Provisioning Failed', error.message, 'error');
+            } finally {
+                // Restore UI
+                btn.classList.remove('hidden');
+                loader.classList.add('hidden');
+            }
+        });
+
+        // Initialize Data
+        document.addEventListener('DOMContentLoaded', fetchStores);
+
+    </script>
+</body>
+</html>
