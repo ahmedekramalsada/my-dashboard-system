@@ -38,7 +38,7 @@ mkdir -p /opt/saas/api
 cat << 'EOF' > /opt/saas/traefik/docker-compose.yml
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v2.10
     container_name: traefik
     restart: always
     command:

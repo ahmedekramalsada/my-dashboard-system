@@ -41,6 +41,8 @@ services:
     volumes:
       # Mount our customized dashboard.html as the index file
       - ./dashboard.html:/usr/share/nginx/html/index.html:ro
+    ports:
+      - "8081:80"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN:-example.com}`)"
@@ -50,5 +52,5 @@ services:
 # Define the network assuming Traefik created a default 'traefik_default' or similar
 networks:
   default:
-    name: saas_internal
-    external: false
+    name: traefik_default
+    external: true

@@ -45,3 +45,9 @@ services:
     image: redis:alpine
     container_name: redis-${TENANT_NAME}
     restart: always
+
+# Connect tenant to the shared Traefik network
+networks:
+  default:
+    name: traefik_default
+    external: true
