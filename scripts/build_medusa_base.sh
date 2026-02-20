@@ -38,8 +38,9 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ 
 
 COPY package.json yarn.lock ./
-# Medusa starter uses yarn.lock
-RUN yarn install --frozen-lockfile
+# Medusa starter uses yarn.lock. Removed --frozen-lockfile because upstream
+# lockfiles frequently mismatch native bindings on different architectures.
+RUN yarn install
 
 COPY . .
 

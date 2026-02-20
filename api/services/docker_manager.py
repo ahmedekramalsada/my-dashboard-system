@@ -192,6 +192,15 @@ DB_NAME={context['DB_NAME']}
 DB_USER={context['DB_USER']}
 DB_PASSWORD={context['DB_PASSWORD']}
 THEME={context['THEME']}
+
+# Medusa specific variables
+DATABASE_URL=postgres://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}
+REDIS_URL=redis://redis-{context['TENANT_NAME']}:6379
+STORE_CORS=http://{context['TENANT_NAME']}.{context['DOMAIN']}
+ADMIN_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
+AUTH_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']},http://{context['TENANT_NAME']}.{context['DOMAIN']}
+JWT_SECRET=supersecret
+COOKIE_SECRET=supersecret
 """
     env_path = os.path.join(tenant_dir, ".env")
     with open(env_path, "w") as f:

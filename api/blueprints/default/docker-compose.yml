@@ -16,21 +16,32 @@
 services:
 
   # ---------------------------------------------------------------------------
-  # MedusaJS Backend Placeholder
-  # Using nginx:alpine with a generated admin.html until a real Medusa image
-  # is available (avoids Docker Hub rate limits / private registry requirement).
+  # MedusaJS Backend
+  # Uses the base image we compile once. Connects to isolated tenant DB on
+  # shared-postgres, and an isolated Redis instance defined below.
   # ---------------------------------------------------------------------------
   medusa:
-    image: nginx:alpine
+    image: my-registry/medusa-base:latest
     container_name: medusa-${TENANT_NAME}
     restart: always
-    volumes:
-      - ./admin.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - redis
+    env_file:
+      - .env
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin-${TENANT_NAME}.rule=Host(`admin.${TENANT_NAME}.${DOMAIN}`)"
       - "traefik.http.routers.admin-${TENANT_NAME}.entrypoints=web"
-      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=80"
+      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=9000"
+
+  # ---------------------------------------------------------------------------
+  # Redis (Isolated per tenant)
+  # Required by MedusaJS for sessions, queues, etc.
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis-${TENANT_NAME}
+    restart: always
 
   # ---------------------------------------------------------------------------
   # Storefront — nginx:alpine serving a generated themed HTML file
