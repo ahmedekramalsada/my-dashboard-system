@@ -79,7 +79,7 @@ resource "aws_security_group" "saas_sg" {
   }
 
   ingress {
-    description = "FastAPI API Endpoint (Provisional)"
+    description = "FastAPI Provisioning API (direct access, fallback when Traefik is misconfigured)"
     from_port   = 8000
     to_port     = 8000
     protocol    = "tcp"
@@ -87,7 +87,7 @@ resource "aws_security_group" "saas_sg" {
   }
 
   ingress {
-    description = "Super Admin Dashboard (Direct Port)"
+    description = "Super Admin Dashboard (direct access)"
     from_port   = 8081
     to_port     = 8081
     protocol    = "tcp"
@@ -131,14 +131,18 @@ resource "aws_instance" "saas_server" {
   vpc_security_group_ids      = [aws_security_group.saas_sg.id]
   associate_public_ip_address = true
 
-  user_data = file("${path.module}/user_data.sh")
+  # Fix: Use templatefile() to inject variables instead of hardcoding secrets in user_data.sh
+  user_data = templatefile("${path.module}/user_data.sh", {
+    db_password = var.db_password
+    domain_name = var.domain_name
+  })
 
   tags = {
     Name = "SaaS-Platform-Server"
   }
 
   root_block_device {
-    volume_size = 50 # GB for Docker Images & DB Data
+    volume_size = 50 # GB — needed for Docker images and database data
     volume_type = "gp3"
   }
 }

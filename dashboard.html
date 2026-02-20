@@ -76,10 +76,10 @@
                     class="text-brand-500">Command</span></h1>
         </div>
         <div class="flex items-center gap-4 text-sm font-medium">
-            <span
-                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                API Connected
+            <span id="apiStatusBadge"
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-700/50 text-slate-400 border border-slate-600/30 transition-all duration-500">
+                <span id="apiStatusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span id="apiStatusText">Connecting...</span>
             </span>
         </div>
     </header>
@@ -220,7 +220,18 @@
 
     <!-- Application Logic -->
     <script>
-        const API_BASE = 'http://' + window.location.hostname + ':8000'; // Dynamically connect to the API on the same host
+        // ------------------------------------------------------------------
+        // CONFIG — adjust these if your API runs on a different port or domain
+        // ------------------------------------------------------------------
+        const CONFIG = {
+            API_BASE: 'http://' + window.location.hostname + ':8000',
+            // Domain used for building tenant store links.
+            // Falls back to window.location.hostname when served via the EC2 public IP.
+            DOMAIN: window.location.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)
+                ? 'example.com'  // Update to your real domain when live
+                : window.location.hostname.replace(/^superadmin\./, ''),
+        };
+        const API_BASE = CONFIG.API_BASE; // Shorthand for backwards compatibility
 
         // --- UI Helpers ---
         function showToast(title, message, type = 'success') {
@@ -281,8 +292,8 @@
                                 </span>
                             </h4>
                             <div class="flex gap-3 text-xs text-slate-400 mt-1">
-                                <a href="http://${tenantName}.example.com" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Storefront ↗</a>
-                                <a href="http://admin.${tenantName}.example.com" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Admin ↗</a>
+                                <a href="http://${tenantName}.${CONFIG.DOMAIN}" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Storefront ↗</a>
+                                <a href="http://admin.${tenantName}.${CONFIG.DOMAIN}" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Admin ↗</a>
                             </div>
                         </div>
                     </div>
@@ -386,8 +397,36 @@
             }
         });
 
-        // Initialize Data
-        document.addEventListener('DOMContentLoaded', fetchStores);
+        // ------------------------------------------------------------------
+        // Health Check — updates the badge in the header on load
+        // ------------------------------------------------------------------
+        async function checkApiHealth() {
+            const badge = document.getElementById('apiStatusBadge');
+            const dot = document.getElementById('apiStatusDot');
+            const text = document.getElementById('apiStatusText');
+            try {
+                const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(5000) });
+                if (res.ok) {
+                    badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition-all duration-500';
+                    dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                    text.textContent = 'API Connected';
+                } else {
+                    throw new Error('non-200');
+                }
+            } catch {
+                badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 transition-all duration-500';
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                text.textContent = 'API Unreachable';
+            }
+        }
+
+        // Initialize Data + start auto-refresh every 30 seconds
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkApiHealth();
+            await fetchStores();
+            setInterval(fetchStores, 30000);
+            setInterval(checkApiHealth, 60000);
+        });
 
     </script>
 </body>

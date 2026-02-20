@@ -1,77 +1,139 @@
 # Shopify Alternative SaaS Platform
 
-Welcome to the ultimate SaaS Multi-tenant E-commerce platform repository. This project is built using a micro-architecture approach targeting immense scalability, strict tenant isolation, and zero-downtime deployments.
-
-## 🗺️ Master Architecture & Phases
-
-### 🔄 Phase 0: CI/CD & Automation (Azure DevOps)
-_Status: Pending_
-- **Platform**: Azure DevOps for Repositories, Pipelines, and Artifacts.
-- **Pipelines**: Automated flows to validate, plan, and apply Terraform configurations, and deploy the FastAPI backend.
-
-### ☁️ Phase 1: Base Infrastructure (The Groundwork)
-_Status: Completed (Terraform Code ready)_
-- **Infrastructure as Code**: Terraform scripts to provision AWS VPC, Subnets, Internet Gateway, and an EC2 Instance.
-- **Bootstrapping**: An automated `user_data.sh` script that installs Docker, Docker Compose, and provisions the initial reverse proxy (Traefik) and the shared database (PostgreSQL 15).
-
-### ⚙️ Phase 2: Core API (The Provisioning Engine)
-_Status: Completed_
-- **Framework**: Python 3.11+ using FastAPI (Async).
-- **Control**: Integrating the `docker` Python SDK to programmatically spawn, mutate, and destroy tenant storefronts and schemas on-demand.
-
-### 🍱 Phase 3: Blueprints (Docker Templates)
-_Status: Completed_
-- Pre-configured `docker-compose` setups for MedusaJS backends and dynamic Next.js storefronts representing different themes (e.g., Fashion, Electronics).
-
-### 🖥️ Phase 4: Super Admin Dashboard
-_Status: Completed_
-- Visual control panel (HTML/TailwindJS/Glassmorphism) representing the "Command Center" of the SaaS platform to monitor tenants, create new stores, and deploy themes.
-
-### 🧙‍♂️ Phase 5: The Magic Flow
-_Status: Completed_
-- **Control Plane**: A root `docker-compose.yml` that securely runs the Provisioning API (with access to the Docker socket) and serves the Dashboard via Nginx.
-- **Routing**: End-to-end Traefik configuration handles routing for `superadmin.domain.com`, `api.admin.domain.com` out of the box.
+A production-ready, multi-tenant SaaS e-commerce platform. Each tenant gets their own isolated MedusaJS backend + Next.js storefront, provisioned on-demand by a FastAPI control plane, all routed dynamically through Traefik.
 
 ---
 
-## Getting Started
+## 🗺️ Architecture Overview
 
-### 1. Provisioning Infrastructure
-Infrastructure provisioning is primarily intended to be handled via **Azure DevOps Pipelines**, but for local testing:
+```
+                         [ Internet ]
+                              │
+                         [ Traefik ]  ← auto-discovers containers via Docker socket
+                        /           \
+             superadmin.*          api.admin.*          tenant.yourdomain.com
+                  │                     │                        │
+          [Nginx Dashboard]     [FastAPI API :8000]    [Medusa + Next.js per tenant]
+                                        │
+                              [Shared PostgreSQL]
+                              (per-tenant DB + Role)
+```
 
+---
+
+## 📦 Project Structure
+
+```
+.
+├── api/
+│   ├── blueprints/default/    # Docker Compose template copied per tenant
+│   ├── core/config.py         # Settings from environment variables
+│   ├── services/db.py         # Tenant DB provisioning (asyncpg)
+│   ├── services/docker_manager.py  # Blueprint copy + docker compose subprocess
+│   ├── main.py                # FastAPI app (CORS, routes, JSON logging)
+│   ├── Dockerfile             # Installs docker-ce-cli for subprocess calls
+│   └── requirements.txt
+├── terraform/
+│   ├── main.tf                # VPC, EC2 + templatefile() for user_data
+│   ├── variables.tf           # db_password (sensitive), domain_name, key_name
+│   ├── user_data.sh           # Bootstrap: Docker, traefik_default network, Traefik, Postgres
+│   ├── backend.tf             # S3 remote state
+│   └── outputs.tf
+├── docker-compose.yml         # Control plane: API + Dashboard + shared-postgres
+├── dashboard.html             # Super Admin UI (glassmorphism, dynamic health check)
+└── azure-pipelines.yml        # CI/CD: terraform init → validate → plan → apply
+```
+
+---
+
+## 🔴 Fixes Applied (v2)
+
+| # | File | Fix |
+|---|------|-----|
+| 1 | `docker-compose.yml` | Added missing `shared-postgres` service with healthcheck |
+| 2 | `main.py` | Removed `docker_client` name collision (shadowing import) |
+| 3 | `main.py` | Added CORS middleware — dashboard was blocked by browser |
+| 4 | `Dockerfile` | Install `docker-ce-cli` so `subprocess docker compose` works |
+| 5 | `main.py` | Fixed `/stores-status` broken regex filter (pipe `\|` is not valid) |
+| 6 | `user_data.sh` | Create `traefik_default` network before starting services |
+| 7 | `azure-pipelines.yml` | Added `-auto-approve` — pipeline was hanging indefinitely |
+| 8 | `user_data.sh` + `variables.tf` | Parameterize DB password via Terraform variable (secret) |
+| 9 | `dashboard.html` | Dynamic domain — no more hardcoded `.example.com` |
+| 10 | `dashboard.html` | Real `/health` API check drives the badge (red/green) |
+| 11 | `api/core/` + `api/services/` | Added `__init__.py` for proper Python packages |
+| 12 | `docker_manager.py` | Removed dangerous blueprint auto-stub generator |
+| 13 | `requirements.txt` | Upgraded to latest stable versions |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- AWS account with credentials configured
+- Azure DevOps project with `aws-terraform-connection` service connection
+- S3 bucket `my-dashboard-s3` (for Terraform state)
+- EC2 Key Pair created in your AWS region
+
+### 1. Set Pipeline Variables (Azure DevOps)
+In your pipeline, set these as **secret variables** in the Library:
+- `DB_PASSWORD` — root PostgreSQL password (secret)
+- `key_name` — EC2 key pair name
+- `domain_name` — your base domain (e.g. `myshop.io`)
+
+### 2. Provision Infrastructure (runs via Azure DevOps on push to `main`)
 ```bash
 cd terraform
-# Remember to configure AWS credentials to access the 'my-dashboard-s3' backend
-terraform init
-terraform apply
+terraform init   # Uses S3 backend: my-dashboard-s3
+terraform apply  # Creates VPC, EC2, bootstraps Docker + Traefik + Postgres
 ```
-This will set up the entire Base Infrastructure on your AWS account, securely storing the state in the `my-dashboard-s3` S3 bucket.
 
-### 2. Deploying the Control Plane (The Dashboard & API)
-Once the server is running, you deploy the core SaaS engine:
-
+### 3. Deploy the Control Plane (on the EC2 server)
 ```bash
-# Set your domain first
-export DOMAIN="yourdomain.com"
+# SSH into the server
+ssh -i my-aws-key.pem ubuntu@<EC2_PUBLIC_IP>
 
-# Spin up the API and Dashboard
+# Clone the repo and deploy
+git clone <this-repo> /opt/saas/control-plane
+cd /opt/saas/control-plane
+
+export DOMAIN="yourdomain.com"
+export DB_ROOT_PASSWORD="your-secret-password"  # Same as TF_VAR_db_password
 docker compose up -d --build
 ```
-This starts:
-- The Super Admin Dashboard at `http://superadmin.yourdomain.com` (Served via Nginx)
-- The Provisioning Engine API at `http://api.admin.yourdomain.com` (FastAPI)
 
-### 3. Creating Tenants (The Flow)
-1. Go to your Super Admin Dashboard.
-2. Enter a subdomain (e.g., `shoes`) and choose a theme.
-3. Click "Deploy".
-4. The API connects to the shared PostgreSQL, creates a database `db_shoes` and user `user_shoes`.
-5. The API copies the Medusa + Next.js blueprint from `/api/blueprints`, templates the `.env` with the new DB credentials.
-6. The API runs `docker compose up -d` for that specific tenant.
-7. Traefik automatically detects the new containers. The tenant is instantly live at `shoes.yourdomain.com` and `admin.shoes.yourdomain.com`.
+### 4. Access the Dashboard
+- **Super Admin**: `http://superadmin.yourdomain.com` (or `http://<IP>:8081`)
+- **API**: `http://api.admin.yourdomain.com` (or `http://<IP>:8000`)
+- **API Docs**: `http://<IP>:8000/docs`
 
-### 🛡️ Best Practices Implemented
-- **Idempotency**: Terraform and the Database creation scripts are idempotent and safe to re-run.
-- **Micro-architecture**: Stores are completely separate containers, not a monolithic framework. If one store crashes, others are unaffected.
-- **DB Isolation**: A single shared Postgres instance dynamically partitions data using separate Roles and Databases per tenant, saving massive amounts of RAM vs spinning up Postgres per tenant.
-- **Dynamic Routing**: Traefik removes the need to ever manually touch Nginx or Apache configs when a new tenant signs up.
+### 5. Provision a Tenant via Dashboard
+1. Enter a subdomain (e.g., `shoes`)
+2. Pick a theme (Fashion / Electronics / Minimal)
+3. Click **Deploy Tenant**
+4. The API creates `db_shoes` + `user_shoes` in Postgres, copies the blueprint, runs `docker compose up -d`
+5. Traefik auto-routes `shoes.yourdomain.com` → storefront and `admin.shoes.yourdomain.com` → Medusa
+
+---
+
+## 🛡️ Best Practices Implemented
+
+| Practice | Implementation |
+|---|---|
+| **Idempotency** | DB creation and Terraform are safe to re-run |
+| **Micro-architecture** | Each tenant is isolated containers — one crash doesn't affect others |
+| **DB Isolation** | Separate Postgres DB + Role per tenant on a shared Postgres instance |
+| **Dynamic Routing** | Traefik auto-discovers containers via Docker socket — zero manual config |
+| **Secret Management** | DB password injected as Terraform `sensitive` variable from pipeline secrets |
+| **JSON Logging** | All API events emit structured JSON for log aggregator ingestion |
+
+---
+
+## ⚠️ Suggestions for Future Improvements
+
+1. **Secret Manager** — Move DB credentials to AWS Secrets Manager and fetch them from the API at startup
+2. **TLS / SSL** — Uncomment the Traefik ACME config in `user_data.sh` to enable Let's Encrypt
+3. **State Locking** — Uncomment `dynamodb_table` in `backend.tf` to prevent concurrent Terraform applies
+4. **Tenant Registry** — Store tenant metadata (name, theme, created_at) in the shared DB, not just in Docker container names
+5. **Add Tests** — Integration tests for `/create-store` and `/delete-store` using `pytest` + `httpx`
+6. **Rate Limiting** — Add `slowapi` middleware to the FastAPI app to prevent provisioning abuse
+7. **CORS Lockdown** — Change `allow_origins=["*"]` in `main.py` to `["https://superadmin.yourdomain.com"]`

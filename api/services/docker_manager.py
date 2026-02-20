@@ -2,25 +2,26 @@ import os
 import shutil
 import docker
 import logging
+import json
 from typing import Dict
-from jinja2 import Template
 from core.config import settings
 
 logger = logging.getLogger("ProvisioningAPI.Docker")
 
+# Single source of truth for the Docker client — imported by main.py as well.
 try:
     docker_client = docker.from_env()
+    logger.info(json.dumps({"event": "docker_client_connected"}))
 except Exception as e:
-    logger.error(f"Failed to connect to Docker daemon: {str(e)}")
+    logger.error(json.dumps({"event": "docker_client_failed", "error": str(e)}))
     docker_client = None
 
-def render_env_file(tenant_dir: str, context: Dict):
-    """
-    Renders the .env file for the tenant from a template.
-    """
-    env_content = f"""
-# Auto-generated .env for tenant {context['TENANT_NAME']}
+
+def render_env_file(tenant_dir: str, context: Dict) -> None:
+    """Renders the .env file for a tenant from the provisioned credentials."""
+    env_content = f"""# Auto-generated .env for tenant {context['TENANT_NAME']}
 DOMAIN={context['DOMAIN']}
+TENANT_NAME={context['TENANT_NAME']}
 DB_HOST={context['DB_HOST']}
 DB_PORT={context['DB_PORT']}
 DB_NAME={context['DB_NAME']}
@@ -28,119 +29,140 @@ DB_USER={context['DB_USER']}
 DB_PASSWORD={context['DB_PASSWORD']}
 THEME={context['THEME']}
 """
-    with open(os.path.join(tenant_dir, '.env'), 'w') as f:
-        f.write(env_content.strip())
+    env_path = os.path.join(tenant_dir, ".env")
+    with open(env_path, "w") as f:
+        f.write(env_content)
+    logger.info(json.dumps({"event": "env_file_written", "path": env_path}))
+
 
 def copy_blueprint(tenant_name: str, theme: str) -> str:
     """
-    Copies the blueprint (docker-compose template) to a new tenant directory.
-    To be fully idempotent, it overwrites if it already exists.
+    Copies the default blueprint into a new per-tenant directory.
+    Idempotent: overwrites if the tenant directory already exists.
+    Raises FileNotFoundError if the blueprint source is missing — the stub
+    auto-generator was removed to prevent corrupting a real blueprint.
     """
-    # Fix: API runs from /app, but blueprints are relative to the current working directory natively.
-    blueprint_src = os.path.join(os.path.dirname(__file__), "..", "blueprints", "default")
+    blueprint_src = os.path.join(
+        os.path.dirname(__file__), "..", "blueprints", "default"
+    )
+    blueprint_src = os.path.abspath(blueprint_src)
     tenant_dir = os.path.join(settings.TENANTS_DIR, tenant_name)
-    
-    # In a real scenario, make sure the blueprint exists
-    if not os.path.exists(blueprint_src):
-        # Fallback to a default or raise an error
-        # Creating a stub for now so the logic is complete
-        os.makedirs(blueprint_src, exist_ok=True)
-        with open(os.path.join(blueprint_src, 'docker-compose.yml'), 'w') as f:
-            f.write(f"""
-services:
-  medusa:
-    image: medusajs/medusa:latest
-    container_name: medusa-{tenant_name}
-    env_file: .env
-    restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.admin-{tenant_name}.rule=Host(`admin.{tenant_name}.${{DOMAIN}}`)"
-  storefront:
-    image: my-nextjs-storefront:{theme}
-    container_name: storefront-{tenant_name}
-    env_file: .env
-    restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.store-{tenant_name}.rule=Host(`{tenant_name}.${{DOMAIN}}`)"
-            """.strip())
-    
-    if not os.path.exists(tenant_dir):
-        logger.info(f"Copying blueprints for {tenant_name} from {blueprint_src}")
-        shutil.copytree(blueprint_src, tenant_dir)
-    else:
-        logger.warning(f"Tenant directory {tenant_dir} already exists. Overwriting blueprints.")
+
+    # Guard: fail fast with a clear message if blueprint is missing
+    if not os.path.isdir(blueprint_src):
+        raise FileNotFoundError(
+            f"Blueprint source directory not found: {blueprint_src}. "
+            "Ensure api/blueprints/default/ exists and is mounted correctly."
+        )
+
+    # Idempotent copy — always start fresh for the tenant
+    if os.path.exists(tenant_dir):
+        logger.warning(json.dumps({
+            "event": "tenant_dir_overwrite",
+            "tenant": tenant_name,
+            "path": tenant_dir,
+        }))
         shutil.rmtree(tenant_dir)
-        shutil.copytree(blueprint_src, tenant_dir)
-        
+
+    shutil.copytree(blueprint_src, tenant_dir)
+    logger.info(json.dumps({
+        "event": "blueprint_copied",
+        "tenant": tenant_name,
+        "src": blueprint_src,
+        "dst": tenant_dir,
+    }))
     return tenant_dir
 
-def start_tenant_containers(tenant_name: str, theme: str, db_credentials: dict):
+
+def start_tenant_containers(tenant_name: str, theme: str, db_credentials: dict) -> bool:
     """
-    Orchestrates the docker compose up process for a new tenant via the Docker python sdk.
-    Since docker-compose is technically an external binary, we either shell out or use the newer compose API.
-    A reliable, production-ready way in python is using python subprocess to call `docker compose up -d`
-    in the tenant directory.
+    Copies the blueprint, renders the .env, then runs `docker compose up -d`
+    inside the tenant directory.
+
+    Requires: docker CLI must be installed inside this container (see Dockerfile).
+    The Docker socket must be bind-mounted at /var/run/docker.sock.
     """
     import subprocess
-    
+
     tenant_dir = copy_blueprint(tenant_name, theme)
-    
+
     context = {
         "TENANT_NAME": tenant_name,
         "DOMAIN": settings.DOMAIN,
         "THEME": theme,
-        **db_credentials
+        **db_credentials,
     }
-    
     render_env_file(tenant_dir, context)
-    
-    logger.info(f"Starting docker containers for {tenant_name}...")
-    
-    # Using subprocess to run docker compose
-    # The API container itself must have the docker cli installed and docker.sock mounted (Docker-in-Docker pattern or sibling container)
+
+    logger.info(json.dumps({"event": "docker_compose_up", "tenant": tenant_name, "dir": tenant_dir}))
+
     try:
         result = subprocess.run(
             ["docker", "compose", "up", "-d"],
             cwd=tenant_dir,
             check=True,
             capture_output=True,
-            text=True
+            text=True,
+            timeout=120,  # Prevent hanging indefinitely
         )
-        logger.info(f"Containers started for {tenant_name}. Output: {result.stdout}")
+        logger.info(json.dumps({
+            "event": "docker_compose_up_success",
+            "tenant": tenant_name,
+            "stdout": result.stdout.strip(),
+        }))
         return True
+    except FileNotFoundError:
+        raise RuntimeError(
+            "docker CLI not found inside the API container. "
+            "Ensure the Dockerfile installs docker-ce-cli."
+        )
     except subprocess.CalledProcessError as e:
-        logger.error(f"Failed to start containers for {tenant_name}. Error: {e.stderr}")
+        logger.error(json.dumps({
+            "event": "docker_compose_up_failed",
+            "tenant": tenant_name,
+            "stderr": e.stderr,
+        }))
         raise Exception(f"Failed to start Docker containers: {e.stderr}")
+    except subprocess.TimeoutExpired:
+        raise Exception(f"docker compose up timed out for tenant: {tenant_name}")
 
-def delete_tenant_containers(tenant_name: str):
+
+def delete_tenant_containers(tenant_name: str) -> bool:
     """
-    Spins down tenant containers and removes the tenant directory.
+    Runs `docker compose down -v` for the tenant then removes the tenant directory.
     """
     import subprocess
+
     tenant_dir = os.path.join(settings.TENANTS_DIR, tenant_name)
-    
-    if os.path.exists(tenant_dir):
-        logger.info(f"Taking down docker containers for {tenant_name}...")
-        try:
-            # -v removes associated anonymous volumes
-            subprocess.run(
-                ["docker", "compose", "down", "-v"],
-                cwd=tenant_dir,
-                check=True,
-                capture_output=True,
-                text=True
-            )
-            logger.info(f"Containers stopped and removed for {tenant_name}.")
-            
-            logger.info(f"Removing tenant files...")
-            shutil.rmtree(tenant_dir)
-            return True
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to stop/remove containers for {tenant_name}. Error: {e.stderr}")
-            raise Exception(f"Failed to take down Docker containers: {e.stderr}")
-    else:
-        logger.warning(f"Tenant directory {tenant_dir} not found. Skipping docker take down.")
+
+    if not os.path.exists(tenant_dir):
+        logger.warning(json.dumps({
+            "event": "tenant_dir_not_found",
+            "tenant": tenant_name,
+            "path": tenant_dir,
+        }))
         return False
 
+    logger.info(json.dumps({"event": "docker_compose_down", "tenant": tenant_name}))
+
+    try:
+        subprocess.run(
+            ["docker", "compose", "down", "-v"],
+            cwd=tenant_dir,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        logger.info(json.dumps({"event": "docker_compose_down_success", "tenant": tenant_name}))
+    except subprocess.CalledProcessError as e:
+        logger.error(json.dumps({
+            "event": "docker_compose_down_failed",
+            "tenant": tenant_name,
+            "stderr": e.stderr,
+        }))
+        raise Exception(f"Failed to take down Docker containers: {e.stderr}")
+
+    shutil.rmtree(tenant_dir)
+    logger.info(json.dumps({"event": "tenant_dir_removed", "path": tenant_dir}))
+    return True
