@@ -225,11 +225,15 @@
         // ------------------------------------------------------------------
         const CONFIG = {
             API_BASE: 'http://' + window.location.hostname + ':8000',
-            // Domain used for building tenant store links.
-            // Falls back to window.location.hostname when served via the EC2 public IP.
-            DOMAIN: window.location.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)
-                ? 'example.com'  // Update to your real domain when live
-                : window.location.hostname.replace(/^superadmin\./, ''),
+            // Default domain used for tenant store links.
+            // When accessing via IP, we use nip.io to enable wildcard subdomains without a real domain setup.
+            DOMAIN: (function () {
+                const host = window.location.hostname;
+                const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(host);
+                if (host === 'localhost') return 'localhost.nip.io';
+                if (isIP) return host + '.nip.io';
+                return host.replace(/^superadmin\./, '');
+            })(),
         };
         const API_BASE = CONFIG.API_BASE; // Shorthand for backwards compatibility
 
