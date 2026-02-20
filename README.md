@@ -4,6 +4,11 @@ Welcome to the ultimate SaaS Multi-tenant E-commerce platform repository. This p
 
 ## 🗺️ Master Architecture & Phases
 
+### 🔄 Phase 0: CI/CD & Automation (Azure DevOps)
+_Status: Pending_
+- **Platform**: Azure DevOps for Repositories, Pipelines, and Artifacts.
+- **Pipelines**: Automated flows to validate, plan, and apply Terraform configurations, and deploy the FastAPI backend.
+
 ### ☁️ Phase 1: Base Infrastructure (The Groundwork)
 _Status: Completed (Terraform Code ready)_
 - **Infrastructure as Code**: Terraform scripts to provision AWS VPC, Subnets, Internet Gateway, and an EC2 Instance.
@@ -31,11 +36,14 @@ _Status: Pending_
 ## Getting Started
 
 ### 1. Provisioning Infrastructure
+Infrastructure provisioning is primarily intended to be handled via **Azure DevOps Pipelines**, but for local testing:
+
 ```bash
 cd terraform
+# Remember to configure AWS credentials to access the 'my-dashboard-s3' backend
 terraform init
 terraform apply
 ```
-This will set up the entire Base Infrastructure on your AWS account.
+This will set up the entire Base Infrastructure on your AWS account, securely storing the state in the `my-dashboard-s3` S3 bucket.
 
 _Note: The `user_data.sh` applies Docker, Traefik, and PostgreSQL automatically once the EC2 instance is active._
