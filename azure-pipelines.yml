@@ -28,4 +28,20 @@ steps:
     backendServiceAWS: 'aws-terraform-connection'
     backendAWSBucketName: 'my-dashboard-s3'
     backendAWSKey: 'infrastructure/terraform.tfstate'
-    
+- task: TerraformTask@5
+  inputs:
+    provider: 'aws'
+    command: 'validate'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+- task: TerraformTask@5
+  inputs:
+    provider: 'aws'
+    command: 'plan'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+    environmentServiceNameAWS: 'aws-terraform-connection'
+- task: TerraformTask@5
+  inputs:
+    provider: 'aws'
+    command: 'apply'
+    workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
+    environmentServiceNameAWS: 'aws-terraform-connection'
