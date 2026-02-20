@@ -1,0 +1,54 @@
+version: '3.8'
+
+# This is the "Control Plane" of your SaaS.
+# It runs the API that manages tenants, and the Super Admin Dashboard.
+
+services:
+  # The Python Provisioning Engine we built in /api
+  saas-api:
+    build: 
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: saas-api
+    restart: always
+    environment:
+      # Matches the AWS/domain settings
+      - DOMAIN=${DOMAIN:-example.com}
+      # The API needs access to the shared database to provision tenants
+      - DB_HOST=shared-postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_ROOT_USER:-root}
+      - DB_PASSWORD=${DB_ROOT_PASSWORD:-supersecretpassword123}
+      - DB_NAME=${DB_ROOT_NAME:-defaultdb}
+      # Where tenant blueprints are stored locally on the server
+      - TENANTS_DIR=/opt/saas/tenants
+    volumes:
+      # CRITICAL: The API needs the Docker Socket to spin up new containers for tenants
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount the host path where tenant configs will live so the API can write to them
+      - /opt/saas/tenants:/opt/saas/tenants
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.saas-api.rule=Host(`api.admin.${DOMAIN:-example.com}`)"
+      # - "traefik.http.routers.saas-api.tls=true"
+      # - "traefik.http.routers.saas-api.tls.certresolver=myresolver"
+
+  # A simple Nginx container to serve our Super Admin HTML dashboard
+  saas-dashboard:
+    image: nginx:alpine
+    container_name: saas-dashboard
+    restart: always
+    volumes:
+      # Mount our customized dashboard.html as the index file
+      - ./dashboard.html:/usr/share/nginx/html/index.html:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN:-example.com}`)"
+      # - "traefik.http.routers.saas-dashboard.tls=true"
+      # - "traefik.http.routers.saas-dashboard.tls.certresolver=myresolver"
+
+# Define the network assuming Traefik created a default 'traefik_default' or similar
+networks:
+  default:
+    name: saas_internal
+    external: false

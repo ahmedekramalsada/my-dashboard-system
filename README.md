@@ -28,8 +28,9 @@ _Status: Completed_
 - Visual control panel (HTML/TailwindJS/Glassmorphism) representing the "Command Center" of the SaaS platform to monitor tenants, create new stores, and deploy themes.
 
 ### 🧙‍♂️ Phase 5: The Magic Flow
-_Status: Pending_
-- Tying it all together ensuring an end-to-end fully automated provisioning flow. Within seconds of dashboard submission, a new tenant is assigned a DB schema, subdomains mapped by Traefik, and complete containers spun up.
+_Status: Completed_
+- **Control Plane**: A root `docker-compose.yml` that securely runs the Provisioning API (with access to the Docker socket) and serves the Dashboard via Nginx.
+- **Routing**: End-to-end Traefik configuration handles routing for `superadmin.domain.com`, `api.admin.domain.com` out of the box.
 
 ---
 
@@ -46,4 +47,31 @@ terraform apply
 ```
 This will set up the entire Base Infrastructure on your AWS account, securely storing the state in the `my-dashboard-s3` S3 bucket.
 
-_Note: The `user_data.sh` applies Docker, Traefik, and PostgreSQL automatically once the EC2 instance is active._
+### 2. Deploying the Control Plane (The Dashboard & API)
+Once the server is running, you deploy the core SaaS engine:
+
+```bash
+# Set your domain first
+export DOMAIN="yourdomain.com"
+
+# Spin up the API and Dashboard
+docker compose up -d --build
+```
+This starts:
+- The Super Admin Dashboard at `http://superadmin.yourdomain.com` (Served via Nginx)
+- The Provisioning Engine API at `http://api.admin.yourdomain.com` (FastAPI)
+
+### 3. Creating Tenants (The Flow)
+1. Go to your Super Admin Dashboard.
+2. Enter a subdomain (e.g., `shoes`) and choose a theme.
+3. Click "Deploy".
+4. The API connects to the shared PostgreSQL, creates a database `db_shoes` and user `user_shoes`.
+5. The API copies the Medusa + Next.js blueprint from `/api/blueprints`, templates the `.env` with the new DB credentials.
+6. The API runs `docker compose up -d` for that specific tenant.
+7. Traefik automatically detects the new containers. The tenant is instantly live at `shoes.yourdomain.com` and `admin.shoes.yourdomain.com`.
+
+### 🛡️ Best Practices Implemented
+- **Idempotency**: Terraform and the Database creation scripts are idempotent and safe to re-run.
+- **Micro-architecture**: Stores are completely separate containers, not a monolithic framework. If one store crashes, others are unaffected.
+- **DB Isolation**: A single shared Postgres instance dynamically partitions data using separate Roles and Databases per tenant, saving massive amounts of RAM vs spinning up Postgres per tenant.
+- **Dynamic Routing**: Traefik removes the need to ever manually touch Nginx or Apache configs when a new tenant signs up.
