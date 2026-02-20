@@ -24,9 +24,10 @@ npx medusa db:migrate
 
 echo "=> Starting Medusa backend (compiled build)..."
 # medusa build outputs compiled files to .medusa/server
-# We must start from the compiled output, which knows where the admin bundle lives
+# We must start from .medusa/server so it finds the admin bundle in ./public/
+# Use absolute path to medusa binary since .medusa/server has no node_modules
 cd /app/.medusa/server
-node_modules/.bin/medusa start
+/app/node_modules/.bin/medusa start
 EOF
 chmod +x start.sh
 
