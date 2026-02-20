@@ -37,12 +37,13 @@ WORKDIR /app
 # Install native dependencies required by some Node modules
 RUN apk add --no-cache python3 make g++ 
 
-COPY package.json yarn.lock ./
+# Copy everything first to prevent Yarn 3+ state files (.yarn/install-state.gz) 
+# generated during install from being overwritten by the host files
+COPY . .
+
 # Medusa starter uses yarn.lock. Removed --frozen-lockfile because upstream
 # lockfiles frequently mismatch native bindings on different architectures.
 RUN yarn install
-
-COPY . .
 
 # Build the application (compiles TypeScript to JS & builds admin UI)
 RUN yarn build
