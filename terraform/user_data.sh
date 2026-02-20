@@ -50,14 +50,15 @@ mkdir -p /opt/saas/tenants   # Tenant compose files will be written here by the 
 cat << 'EOF' > /opt/saas/traefik/docker-compose.yml
 services:
   traefik:
-    image: traefik:v2.10
+    image: traefik:v2.11
     container_name: traefik
     restart: always
+    environment:
+      - DOCKER_API_VERSION=1.44
     command:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.docker.network=traefik_default"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # Uncomment and configure when your domain is pointed at this server:
