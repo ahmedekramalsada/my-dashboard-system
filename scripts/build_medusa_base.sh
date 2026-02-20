@@ -22,8 +22,11 @@ cat > start.sh << 'EOF'
 echo "=> Running migrations..."
 npx medusa db:migrate
 
-echo "=> Starting Medusa backend..."
-yarn start
+echo "=> Starting Medusa backend (compiled build)..."
+# medusa build outputs compiled files to .medusa/server
+# We must start from the compiled output, which knows where the admin bundle lives
+cd /app/.medusa/server
+node_modules/.bin/medusa start
 EOF
 chmod +x start.sh
 
