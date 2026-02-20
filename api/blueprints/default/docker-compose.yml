@@ -22,6 +22,7 @@ services:
   # ---------------------------------------------------------------------------
   medusa:
     image: my-registry/medusa-base:latest
+    pull_policy: never   # Image is built locally on the host — never pull from external registry
     container_name: medusa-${TENANT_NAME}
     restart: always
     depends_on:
