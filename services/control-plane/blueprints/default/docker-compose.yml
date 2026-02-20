@@ -45,15 +45,12 @@ services:
     restart: always
 
   # ---------------------------------------------------------------------------
-  # Storefront — nginx:alpine serving a generated themed HTML file
-  # storefront.html is written by docker_manager.py at provision time.
+  # Storefront — nginx:alpine serving its default page until replaced
   # ---------------------------------------------------------------------------
   storefront:
     image: nginx:alpine
     container_name: storefront-${TENANT_NAME}
     restart: always
-    volumes:
-      - ./storefront.html:/usr/share/nginx/html/index.html:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.store-${TENANT_NAME}.rule=Host(`${TENANT_NAME}.${DOMAIN}`)"

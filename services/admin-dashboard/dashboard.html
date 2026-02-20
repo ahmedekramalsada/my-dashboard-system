@@ -230,7 +230,7 @@
             DOMAIN: (function () {
                 const host = window.location.hostname;
                 const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(host);
-                if (host === 'localhost') return 'localhost.nip.io';
+                if (host === 'localhost' || host === '127.0.0.1') return '127.0.0.1.nip.io';
                 if (isIP) return host + '.nip.io';
                 return host.replace(/^superadmin\./, '');
             })(),

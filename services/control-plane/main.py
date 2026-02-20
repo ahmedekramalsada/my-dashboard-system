@@ -5,7 +5,7 @@ from core.config import settings
 import logging
 import json
 from services.db import provision_tenant_db, delete_tenant_db
-from services.docker_manager import start_tenant_containers, delete_tenant_containers, docker_client
+from services.provisioner import active_provisioner
 
 # ------------------------------------------------------------------
 # JSON Structured Logging — production-ready for log aggregators
@@ -74,9 +74,9 @@ async def create_store(tenant_config: TenantCreate):
         logger.info(json.dumps({"event": "provisioning_db", "tenant": tenant_config.tenant_name}))
         db_creds = await provision_tenant_db(tenant_config.tenant_name)
 
-        # Step 2 — Copy blueprint and spin up Docker containers
+        # Step 2 — Use Provisioner Adapter to spin up containers
         logger.info(json.dumps({"event": "starting_containers", "tenant": tenant_config.tenant_name}))
-        start_tenant_containers(
+        active_provisioner.start_tenant(
             tenant_name=tenant_config.tenant_name,
             theme=tenant_config.theme,
             db_credentials=db_creds,
@@ -98,17 +98,12 @@ async def create_store(tenant_config: TenantCreate):
 @app.get("/stores-status")
 async def stores_status():
     """Returns all running tenant containers grouped by tenant."""
-    if not docker_client:
-        raise HTTPException(status_code=503, detail="Docker client unavailable")
-
-    # Fix: Filter by 'medusa-' prefix only (pipe '|' is NOT valid in Docker SDK filters).
-    # We list medusa containers as the canonical source of truth for active tenants.
-    containers = docker_client.containers.list(filters={"name": "medusa-"})
-    status = [
-        {"id": c.short_id, "name": c.name, "status": c.status}
-        for c in containers
-    ]
-    return {"running_containers": status}
+    try:
+        status = active_provisioner.get_tenant_status()
+        return {"running_containers": status}
+    except Exception as e:
+        logger.error(json.dumps({"event": "get_tenant_status_failed", "error": str(e)}))
+        raise HTTPException(status_code=503, detail="Provisioning orchestrator unavailable")
 
 
 @app.post("/delete-store")
@@ -116,9 +111,9 @@ async def delete_store(tenant_config: TenantDelete):
     logger.info(json.dumps({"event": "delete_store_requested", "tenant": tenant_config.tenant_name}))
 
     try:
-        # Step 1 — Stop and remove Docker containers
+        # Step 1 — Stop and remove orchestrator containers
         logger.info(json.dumps({"event": "stopping_containers", "tenant": tenant_config.tenant_name}))
-        delete_tenant_containers(tenant_config.tenant_name)
+        active_provisioner.delete_tenant(tenant_config.tenant_name)
 
         # Step 2 — Drop tenant database + role
         logger.info(json.dumps({"event": "deleting_db", "tenant": tenant_config.tenant_name}))

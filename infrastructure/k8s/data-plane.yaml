@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: saas-platform
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shared-postgres
+  namespace: saas-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shared-postgres
+  template:
+    metadata:
+      labels:
+        app: shared-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          env:
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: password
+            - name: POSTGRES_DB
+              value: defaultdb
+          ports:
+            - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shared-postgres
+  namespace: saas-platform
+spec:
+  ports:
+    - port: 5432
+  selector:
+    app: shared-postgres

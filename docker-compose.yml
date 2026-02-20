@@ -8,6 +8,26 @@
 services:
 
   # ---------------------------------------------------------------------------
+  # Traefik Reverse Proxy (Local Development & Routing)
+  # ---------------------------------------------------------------------------
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    restart: always
+    environment:
+      - DOCKER_API_VERSION=1.44
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  # ---------------------------------------------------------------------------
   # Shared PostgreSQL — the multi-tenant data plane.
   # The API connects here to CREATE DATABASE / ROLE per tenant.
   # ---------------------------------------------------------------------------
@@ -32,7 +52,7 @@ services:
   # ---------------------------------------------------------------------------
   saas-api:
     build:
-      context: ./api
+      context: ./services/control-plane
       dockerfile: Dockerfile
     container_name: saas-api
     restart: always
@@ -40,7 +60,7 @@ services:
       shared-postgres:
         condition: service_healthy
     environment:
-      - DOMAIN=${DOMAIN:-example.com}
+      - DOMAIN=${DOMAIN:-127.0.0.1.nip.io}
       - DB_HOST=shared-postgres
       - DB_PORT=5432
       - DB_USER=${DB_ROOT_USER:-root}
@@ -65,23 +85,23 @@ services:
       - "8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.saas-api.rule=Host(`api.admin.${DOMAIN:-example.com}`)"
+      - "traefik.http.routers.saas-api.rule=Host(`api.admin.${DOMAIN:-127.0.0.1.nip.io}`)"
       - "traefik.http.routers.saas-api.entrypoints=web"
 
   # ---------------------------------------------------------------------------
   # Super Admin Dashboard — served via Nginx
   # ---------------------------------------------------------------------------
   saas-dashboard:
-    image: nginx:alpine
+    build:
+      context: ./services/admin-dashboard
+      dockerfile: Dockerfile
     container_name: saas-dashboard
     restart: always
-    volumes:
-      - ./dashboard.html:/usr/share/nginx/html/index.html:ro
     ports:
       - "8081:80"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN:-example.com}`)"
+      - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN:-127.0.0.1.nip.io}`)"
       - "traefik.http.routers.saas-dashboard.entrypoints=web"
 
 # =============================================================================

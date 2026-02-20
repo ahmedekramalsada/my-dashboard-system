@@ -47,20 +47,19 @@ Each tenant runs a real **MedusaJS v2 backend** built from `medusa-starter-defau
 ├── api/
 │   ├── blueprints/default/    # Docker Compose template copied per tenant
 │   ├── core/config.py         # Settings from environment variables
-│   ├── services/db.py         # Tenant DB provisioning (asyncpg)
-│   ├── services/docker_manager.py  # Blueprint copy + docker compose subprocess
-│   ├── main.py                # FastAPI app (CORS, routes, JSON logging)
-│   ├── Dockerfile             # Installs docker-ce-cli for subprocess calls
-│   └── requirements.txt
-├── terraform/
-│   ├── main.tf                # VPC, EC2 + templatefile() for user_data
-│   ├── variables.tf           # db_password (sensitive), domain_name, key_name
-│   ├── user_data.sh           # Bootstrap: Docker, traefik_default network, Traefik, Postgres
-│   ├── backend.tf             # S3 remote state
-│   └── outputs.tf
-├── docker-compose.yml         # Control plane: API + Dashboard + shared-postgres
-├── dashboard.html             # Super Admin UI (glassmorphism, dynamic health check)
-└── azure-pipelines.yml        # CI/CD: terraform init → validate → plan → apply
+## Project Structure (Microservices)
+
+The monolithic API has been decoupled into a true **Cloud-Native Microservices Architecture** capable of running on a single VM or a Kubernetes cluster.
+
+```
+/
+├── services/
+│   ├── control-plane/       # FastAPI Provisioning Engine (Adapter Pattern)
+│   ├── admin-dashboard/     # React/Nginx Static Admin UI
+│   └── tenant-blueprint/    # Dockerfiles for Medusa & Storefront
+│       └── medusa/          # Medusa Base Builder Scripts
+├── infrastructure/          # Terraform AWS & Kubernetes Manifests
+└── docker-compose.yml       # Local single-VM networking
 ```
 
 ---

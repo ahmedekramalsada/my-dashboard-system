@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: saas-admin-dashboard
+  namespace: saas-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: saas-admin-dashboard
+  template:
+    metadata:
+      labels:
+        app: saas-admin-dashboard
+    spec:
+      containers:
+        - name: dashboard
+          image: my-registry/saas-admin-dashboard:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: saas-admin-dashboard
+  namespace: saas-platform
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: saas-admin-dashboard
