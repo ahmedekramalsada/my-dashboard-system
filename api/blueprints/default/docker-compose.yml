@@ -3,37 +3,38 @@
 # Variables like ${TENANT_NAME}, ${DOMAIN}, ${THEME} are substituted
 # from the .env file rendered by docker_manager.py at provision time.
 # =============================================================================
+#
+# NOTE ON IMAGES:
+# - storefront: nginx:alpine serving a generated themed HTML (ready now)
+# - medusa:     nginx:alpine serving a placeholder admin UI (ready now)
+#
+# To upgrade to real images, change:
+#   medusa:    image: medusajs/medusa:latest
+#   storefront: image: your-registry/storefront:${THEME}
+# =============================================================================
 
 services:
 
   # ---------------------------------------------------------------------------
-  # MedusaJS Backend (Headless E-commerce Engine)
+  # MedusaJS Backend Placeholder
+  # Using nginx:alpine with a generated admin.html until a real Medusa image
+  # is available (avoids Docker Hub rate limits / private registry requirement).
   # ---------------------------------------------------------------------------
   medusa:
-    image: medusajs/medusa:latest
+    image: nginx:alpine
     container_name: medusa-${TENANT_NAME}
     restart: always
-    environment:
-      - DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-      - JWT_SECRET=jwt_${TENANT_NAME}_secret
-      - COOKIE_SECRET=cookie_${TENANT_NAME}_secret
-      - REDIS_URL=redis://redis:6379
-      - STORE_CORS=http://${TENANT_NAME}.${DOMAIN}
-      - ADMIN_CORS=http://admin.${TENANT_NAME}.${DOMAIN}
-      - NODE_ENV=development
-    depends_on:
-      - redis
+    volumes:
+      - ./admin.html:/usr/share/nginx/html/index.html:ro
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.admin-${TENANT_NAME}.rule=Host(`admin.${TENANT_NAME}.${DOMAIN}`)"
       - "traefik.http.routers.admin-${TENANT_NAME}.entrypoints=web"
-      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=9000"
+      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=80"
 
   # ---------------------------------------------------------------------------
   # Storefront — nginx:alpine serving a generated themed HTML file
   # storefront.html is written by docker_manager.py at provision time.
-  # Replace with a real Next.js image when available:
-  #   image: your-registry/storefront:${THEME}
   # ---------------------------------------------------------------------------
   storefront:
     image: nginx:alpine
@@ -46,14 +47,6 @@ services:
       - "traefik.http.routers.store-${TENANT_NAME}.rule=Host(`${TENANT_NAME}.${DOMAIN}`)"
       - "traefik.http.routers.store-${TENANT_NAME}.entrypoints=web"
       - "traefik.http.services.store-${TENANT_NAME}.loadbalancer.server.port=80"
-
-  # ---------------------------------------------------------------------------
-  # Redis — required by MedusaJS for job queue and caching
-  # ---------------------------------------------------------------------------
-  redis:
-    image: redis:alpine
-    container_name: redis-${TENANT_NAME}
-    restart: always
 
 # All tenant containers join the shared Traefik network
 networks:

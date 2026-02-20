@@ -119,6 +119,68 @@ def generate_storefront_html(tenant_dir: str, tenant_name: str, theme: str, doma
     logger.info(json.dumps({"event": "storefront_html_written", "path": html_path, "theme": theme}))
 
 
+def generate_admin_html(tenant_dir: str, tenant_name: str, domain: str) -> None:
+    """
+    Generates a placeholder admin panel HTML served by nginx:alpine.
+    Replace with the real MedusaJS admin when available.
+    """
+    admin_url = f"http://admin.{tenant_name}.{domain}"
+    store_url = f"http://{tenant_name}.{domain}"
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — {tenant_name}</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }}
+    .card {{
+      text-align: center; padding: 60px 40px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px; max-width: 560px; width: 100%;
+    }}
+    .icon {{ font-size: 64px; margin-bottom: 20px; }}
+    .badge {{
+      display: inline-block; padding: 5px 14px; border-radius: 99px;
+      background: #7c3aed20; color: #a78bfa; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 20px;
+      border: 1px solid #7c3aed40;
+    }}
+    h1 {{ font-size: 2rem; font-weight: 800; color: white; margin-bottom: 10px; }}
+    p {{ color: #64748b; margin-bottom: 30px; line-height: 1.6; }}
+    .btn {{
+      display: inline-block; padding: 12px 28px; border-radius: 10px;
+      background: linear-gradient(135deg, #7c3aed, #ec4899); color: white;
+      font-weight: 700; text-decoration: none; font-size: 0.95rem;
+    }}
+    .info {{ margin-top: 32px; font-size: 0.8rem; color: #334155; font-family: monospace; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🛠️</div>
+    <div class="badge">Admin Panel</div>
+    <h1>{tenant_name}</h1>
+    <p>Your store admin panel is provisioned and ready.<br>
+       Connect a real MedusaJS backend to manage products, orders, and customers.</p>
+    <a href="{store_url}" class="btn">View Storefront →</a>
+    <div class="info">{admin_url}</div>
+  </div>
+</body>
+</html>"""
+
+    html_path = os.path.join(tenant_dir, "admin.html")
+    with open(html_path, "w") as f:
+        f.write(html)
+    logger.info(json.dumps({"event": "admin_html_written", "path": html_path}))
+
+
 def render_env_file(tenant_dir: str, context: Dict) -> None:
     """Renders the .env file for a tenant from the provisioned credentials."""
     env_content = f"""# Auto-generated .env for tenant {context['TENANT_NAME']}
@@ -196,6 +258,7 @@ def start_tenant_containers(tenant_name: str, theme: str, db_credentials: dict) 
     }
     render_env_file(tenant_dir, context)
     generate_storefront_html(tenant_dir, tenant_name, theme, settings.DOMAIN)
+    generate_admin_html(tenant_dir, tenant_name, settings.DOMAIN)
 
     logger.info(json.dumps({"event": "docker_compose_up", "tenant": tenant_name, "dir": tenant_dir}))
 
