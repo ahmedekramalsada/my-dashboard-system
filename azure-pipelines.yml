@@ -11,7 +11,7 @@ pool:
 
 variables:
   - name: key_name
-    value: my-aws-key # Add your actual key pair name here or override it in Azure DevOps UI
+    value: your-aws-key # Add your actual key pair name here or override it in Azure DevOps UI
 
 steps:
   - script: echo Hello, world!
