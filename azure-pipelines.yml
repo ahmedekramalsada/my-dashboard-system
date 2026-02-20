@@ -53,11 +53,12 @@ steps:
       environmentServiceNameAWS: "aws-terraform-connection"
     env:
       TF_VAR_key_name: $(key_name)
-  - task: TerraformTask@5
-    inputs:
-      provider: 'aws'
-      command: 'destroy'
-      workingDirectory: '$(System.DefaultWorkingDirectory)/terraform'
-      environmentServiceNameAWS: 'aws-terraform-connection'
-    env:
-      TF_VAR_key_name: $(key_name)
+
+  # - task: TerraformTask@5
+  #   inputs:
+  #     provider: "aws"
+  #     command: "destroy"
+  #     workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+  #     environmentServiceNameAWS: "aws-terraform-connection"
+  #   env:
+  #     TF_VAR_key_name: $(key_name)
