@@ -4,7 +4,26 @@ A production-ready, multi-tenant SaaS e-commerce platform. Each tenant gets thei
 
 ---
 
-## 🗺️ Architecture Overview
+## 🧩 MedusaJS Integration
+
+Each tenant runs a real **MedusaJS v2 backend** built from `medusa-starter-default`. A single base image (`my-registry/medusa-base:latest`) is compiled once — tenants start instantly with their isolated `DATABASE_URL` injected.
+
+**Build the base image (once on EC2):**
+```bash
+./scripts/build_medusa_base.sh
+```
+
+| Integration Fix | Solution |
+|---|---|
+| `yarn.lock` mismatch | Plain `yarn install` (no `--frozen-lockfile`) |
+| Admin UI not built | `DATABASE_URL=postgres://dummy/... yarn build` at Docker build time |
+| `medusa start` binary not found | Use `/app/node_modules/.bin/medusa start` (absolute path) |
+| Docker tries to pull local image | Added `pull_policy: never` to tenant blueprint |
+| Postgres SSL error | Append `?sslmode=disable` to `DATABASE_URL` |
+
+---
+
+
 
 ```
                          [ Internet ]
