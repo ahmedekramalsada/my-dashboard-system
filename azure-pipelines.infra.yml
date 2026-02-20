@@ -19,22 +19,24 @@ stages:
     jobs:
       - job: Plan
         steps:
-          - script: |
-              curl -sL https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip -o terraform.zip
-              unzip terraform.zip
-              sudo mv terraform /usr/local/bin/
-            displayName: "Install Terraform"
-
-          - task: AWSShellScript@1
-            displayName: "Terraform Init and Plan"
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
             inputs:
-              awsCredentials: "aws-service-connection"
-              regionName: "$(AWS_REGION)"
-              scriptType: "inline"
-              inlineScript: |
-                cd terraform
-                terraform init -backend-config="bucket=my-dashboard-s3" -backend-config="key=infrastructure/terraform.tfstate" -backend-config="region=$(AWS_REGION)"
-                terraform plan -out=tfplan
+              provider: "aws"
+              command: "init"
+              workingDirectory: "terraform"
+              backendServiceAWS: "aws-terraform-connection"
+              backendAWSBucketName: "my-dashboard-s3"
+              backendAWSKey: "infrastructure/terraform.tfstate"
+              backendAWSRegion: "$(AWS_REGION)"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Plan"
+            inputs:
+              provider: "aws"
+              command: "plan"
+              workingDirectory: "terraform"
+              environmentServiceNameAWS: "aws-terraform-connection"
 
   - stage: TerraformApply
     displayName: "Terraform Apply"
@@ -43,19 +45,22 @@ stages:
     jobs:
       - job: Apply
         steps:
-          - script: |
-              curl -sL https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip -o terraform.zip
-              unzip terraform.zip
-              sudo mv terraform /usr/local/bin/
-            displayName: "Install Terraform"
-
-          - task: AWSShellScript@1
-            displayName: "Terraform Init and Apply"
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
             inputs:
-              awsCredentials: "aws-service-connection"
-              regionName: "$(AWS_REGION)"
-              scriptType: "inline"
-              inlineScript: |
-                cd terraform
-                terraform init -backend-config="bucket=my-dashboard-s3" -backend-config="key=infrastructure/terraform.tfstate" -backend-config="region=$(AWS_REGION)"
-                terraform apply -auto-approve
+              provider: "aws"
+              command: "init"
+              workingDirectory: "terraform"
+              backendServiceAWS: "aws-terraform-connection"
+              backendAWSBucketName: "my-dashboard-s3"
+              backendAWSKey: "infrastructure/terraform.tfstate"
+              backendAWSRegion: "$(AWS_REGION)"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Apply"
+            inputs:
+              provider: "aws"
+              command: "apply"
+              workingDirectory: "terraform"
+              commandOptions: "-auto-approve"
+              environmentServiceNameAWS: "aws-terraform-connection"
