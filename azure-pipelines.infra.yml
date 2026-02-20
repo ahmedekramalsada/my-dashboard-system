@@ -7,58 +7,60 @@ trigger:
       - terraform/**
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-  AWS_REGION: 'us-east-1'
-  TF_VERSION: '1.5.7'
+  AWS_REGION: "us-east-1"
+  TF_VERSION: "1.5.7"
 
 stages:
-- stage: TerraformPlan
-  displayName: 'Terraform Plan'
-  jobs:
-  - job: Plan
-    steps:
-    - script: |
-        curl -sL https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip -o terraform.zip
-        unzip terraform.zip
-        sudo mv terraform /usr/local/bin/
-      displayName: 'Install Terraform'
-    
-    # Needs AWS Credentials passed securely via Azure DevOps variables or Variable Groups
-    - script: |
-        cd terraform
-        terraform init \
-          -backend-config="bucket=my-dashboard-s3" \
-          -backend-config="key=infrastructure/terraform.tfstate" \
-          -backend-config="region=$(AWS_REGION)"
-        terraform plan -out=tfplan
-      displayName: 'Terraform Init and Plan'
-      env:
-        AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-        AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+  - stage: TerraformPlan
+    displayName: "Terraform Plan"
+    jobs:
+      - job: Plan
+        steps:
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
+            inputs:
+              provider: "aws"
+              command: "init"
+              workingDirectory: "terraform"
+              backendServiceAWS: "aws-service-connection"
+              backendAWSBucketName: "my-dashboard-s3"
+              backendAWSKey: "infrastructure/terraform.tfstate"
+              backendAWSRegion: "$(AWS_REGION)"
 
-- stage: TerraformApply
-  displayName: 'Terraform Apply'
-  dependsOn: TerraformPlan
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-  - job: Apply
-    steps:
-    - script: |
-        curl -sL https://releases.hashicorp.com/terraform/$(TF_VERSION)/terraform_$(TF_VERSION)_linux_amd64.zip -o terraform.zip
-        unzip terraform.zip
-        sudo mv terraform /usr/local/bin/
-      displayName: 'Install Terraform'
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Plan"
+            inputs:
+              provider: "aws"
+              command: "plan"
+              workingDirectory: "terraform"
+              environmentServiceNameAWS: "aws-service-connection"
 
-    - script: |
-        cd terraform
-        terraform init \
-          -backend-config="bucket=my-dashboard-s3" \
-          -backend-config="key=infrastructure/terraform.tfstate" \
-          -backend-config="region=$(AWS_REGION)"
-        terraform apply -auto-approve
-      displayName: 'Terraform Apply'
-      env:
-        AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-        AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+  - stage: TerraformApply
+    displayName: "Terraform Apply"
+    dependsOn: TerraformPlan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Apply
+        steps:
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Init"
+            inputs:
+              provider: "aws"
+              command: "init"
+              workingDirectory: "terraform"
+              backendServiceAWS: "aws-service-connection"
+              backendAWSBucketName: "my-dashboard-s3"
+              backendAWSKey: "infrastructure/terraform.tfstate"
+              backendAWSRegion: "$(AWS_REGION)"
+
+          - task: TerraformTaskV4@4
+            displayName: "Terraform Apply"
+            inputs:
+              provider: "aws"
+              command: "apply"
+              workingDirectory: "terraform"
+              commandOptions: "-auto-approve"
+              environmentServiceNameAWS: "aws-service-connection"
