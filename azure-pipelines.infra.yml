@@ -19,24 +19,16 @@ stages:
     jobs:
       - job: Plan
         steps:
-          - task: TerraformTaskV4@4
-            displayName: "Terraform Init"
+          - task: AWSShellScript@1
+            displayName: "Terraform Init and Plan"
             inputs:
-              provider: "aws"
-              command: "init"
-              workingDirectory: "terraform"
-              backendServiceAWS: "aws-service-connection"
-              backendAWSBucketName: "my-dashboard-s3"
-              backendAWSKey: "infrastructure/terraform.tfstate"
-              backendAWSRegion: "$(AWS_REGION)"
-
-          - task: TerraformTaskV4@4
-            displayName: "Terraform Plan"
-            inputs:
-              provider: "aws"
-              command: "plan"
-              workingDirectory: "terraform"
-              environmentServiceNameAWS: "aws-service-connection"
+              awsCredentials: "aws-service-connection"
+              regionName: "$(AWS_REGION)"
+              scriptType: "inline"
+              inlineScript: |
+                cd terraform
+                terraform init -backend-config="bucket=my-dashboard-s3" -backend-config="key=infrastructure/terraform.tfstate" -backend-config="region=$(AWS_REGION)"
+                terraform plan -out=tfplan
 
   - stage: TerraformApply
     displayName: "Terraform Apply"
@@ -45,22 +37,13 @@ stages:
     jobs:
       - job: Apply
         steps:
-          - task: TerraformTaskV4@4
-            displayName: "Terraform Init"
+          - task: AWSShellScript@1
+            displayName: "Terraform Init and Apply"
             inputs:
-              provider: "aws"
-              command: "init"
-              workingDirectory: "terraform"
-              backendServiceAWS: "aws-service-connection"
-              backendAWSBucketName: "my-dashboard-s3"
-              backendAWSKey: "infrastructure/terraform.tfstate"
-              backendAWSRegion: "$(AWS_REGION)"
-
-          - task: TerraformTaskV4@4
-            displayName: "Terraform Apply"
-            inputs:
-              provider: "aws"
-              command: "apply"
-              workingDirectory: "terraform"
-              commandOptions: "-auto-approve"
-              environmentServiceNameAWS: "aws-service-connection"
+              awsCredentials: "aws-service-connection"
+              regionName: "$(AWS_REGION)"
+              scriptType: "inline"
+              inlineScript: |
+                cd terraform
+                terraform init -backend-config="bucket=my-dashboard-s3" -backend-config="key=infrastructure/terraform.tfstate" -backend-config="region=$(AWS_REGION)"
+                terraform apply -auto-approve
