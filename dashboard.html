@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,42 +35,49 @@
             -webkit-backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         /* Smooth transitions */
         .transition-all {
             transition-property: all;
             transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
             transition-duration: 300ms;
         }
-        
+
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
+
         ::-webkit-scrollbar-track {
-            background: #0f172a; 
+            background: #0f172a;
         }
+
         ::-webkit-scrollbar-thumb {
-            background: #334155; 
+            background: #334155;
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
-            background: #475569; 
+            background: #475569;
         }
     </style>
 </head>
+
 <body class="bg-dark-bg text-slate-300 font-sans antialiased min-h-screen flex flex-col items-center p-6 dark">
 
     <!-- Header -->
     <header class="w-full max-w-6xl flex justify-between items-center py-6 mb-8 border-b border-slate-700/50">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
+            <div
+                class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
                 S
             </div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">Super Admin <span class="text-brand-500">Command</span></h1>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Super Admin <span
+                    class="text-brand-500">Command</span></h1>
         </div>
         <div class="flex items-center gap-4 text-sm font-medium">
-            <span class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 API Connected
             </span>
@@ -78,33 +86,42 @@
 
     <!-- Main Content Grid -->
     <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         <!-- Left Column: Form -->
         <div class="lg:col-span-1 flex flex-col gap-6">
             <div class="glass rounded-2xl p-6 shadow-xl relative overflow-hidden group">
                 <!-- Decorative glow -->
-                <div class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500"></div>
-                
+                <div
+                    class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500">
+                </div>
+
                 <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                            clip-rule="evenodd" />
                     </svg>
                     Provision New Tenant
                 </h2>
-                
+
                 <form id="createStoreForm" class="flex flex-col gap-5 relative z-10">
                     <div>
-                        <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store Subdomain</label>
+                        <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store
+                            Subdomain</label>
                         <div class="relative">
-                            <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes" required
+                            <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes"
+                                required
                                 class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
-                            <span class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none">.example.com</span>
+                            <span
+                                class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none">.example.com</span>
                         </div>
                     </div>
-                    
+
                     <div>
-                        <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Storefront Theme</label>
-                        <select id="theme" name="theme" 
+                        <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Storefront
+                            Theme</label>
+                        <select id="theme" name="theme"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
                             <option value="fashion">Fashion & Apparel (Default)</option>
                             <option value="electronics">Tech & Electronics</option>
@@ -116,33 +133,40 @@
                         class="mt-2 w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:from-brand-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
                         <span>Deploy Tenant</span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clip-rule="evenodd" />
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+                                clip-rule="evenodd" />
                         </svg>
                     </button>
                     <!-- Loading Spinner (Hidden by default) -->
-                    <div id="loadingIndicator" class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
-                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <div id="loadingIndicator"
+                        class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
+                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
                         </svg>
                         Provisioning Architecture...
                     </div>
                 </form>
             </div>
-            
+
             <!-- Global Stats Widget -->
             <div class="glass rounded-2xl p-6 shadow-lg flex-1">
-                 <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
-                 <div class="grid grid-cols-2 gap-4">
-                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                         <div class="text-3xl font-bold text-white mb-1" id="stat-active">0</div>
-                         <div class="text-xs text-slate-400">Active Tenants</div>
-                     </div>
-                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                         <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">100%</div>
-                         <div class="text-xs text-slate-400">System Health</div>
-                     </div>
-                 </div>
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                        <div class="text-3xl font-bold text-white mb-1" id="stat-active">0</div>
+                        <div class="text-xs text-slate-400">Active Tenants</div>
+                    </div>
+                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                        <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">100%</div>
+                        <div class="text-xs text-slate-400">System Health</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -150,24 +174,31 @@
         <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col h-[600px] overflow-hidden">
             <div class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-dark-card/50">
                 <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20"
+                        fill="currentColor">
+                        <path
+                            d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
                     </svg>
                     Active Environments
                 </h2>
-                <button onclick="fetchStores()" class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <button onclick="fetchStores()"
+                    class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Refresh
                 </button>
             </div>
-            
+
             <div class="flex-1 overflow-y-auto p-2" id="tenantsList">
                 <!-- Tenants will be injected here via JS -->
                 <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                     <p>No active tenants found. Provision one from the left panel.</p>
                 </div>
@@ -177,7 +208,8 @@
     </main>
 
     <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3">
+    <div id="toast"
+        class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3">
         <!-- Icon injected by JS -->
         <div id="toastIcon"></div>
         <div>
@@ -188,17 +220,17 @@
 
     <!-- Application Logic -->
     <script>
-        const API_BASE = 'http://localhost:8000'; // Make sure this matches your FastAPI server when running locally
-        
+        const API_BASE = 'http://' + window.location.hostname + ':8000'; // Dynamically connect to the API on the same host
+
         // --- UI Helpers ---
         function showToast(title, message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.className = `fixed bottom-6 right-6 transform translate-y-0 opacity-100 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 border-${type === 'error' ? 'red-500' : 'brand-500'}`;
-            
+
             document.getElementById('toastTitle').textContent = title;
             document.getElementById('toastMessage').textContent = message;
-            
-            const icon = type === 'error' 
+
+            const icon = type === 'error'
                 ? `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
                 : `<svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
             document.getElementById('toastIcon').innerHTML = icon;
@@ -211,11 +243,11 @@
 
         function renderTenants(containers) {
             const list = document.getElementById('tenantsList');
-            
+
             // Deduplicate to show logic "Tenants" rather than 2 containers per tenant
             // A simple implementation for the demo: group by tenant name prefix
             const tenantsMap_medusa = containers.filter(c => c.name.startsWith('medusa-'));
-            
+
             if (!tenantsMap_medusa || tenantsMap_medusa.length === 0) {
                 document.getElementById('stat-active').innerText = "0";
                 list.innerHTML = `
@@ -229,12 +261,12 @@
             }
 
             document.getElementById('stat-active').innerText = tenantsMap_medusa.length;
-            
+
             let html = '<div class="grid grid-cols-1 gap-3 p-4">';
             tenantsMap_medusa.forEach(container => {
                 const tenantName = container.name.replace('medusa-', '');
                 const isRunning = container.status === 'running';
-                
+
                 html += `
                 <div class="bg-slate-900/80 hover:bg-slate-800 transition-colors border border-slate-700/50 rounded-xl p-4 flex items-center justify-between group">
                     <div class="flex items-center gap-4">
@@ -276,9 +308,9 @@
                 const response = await fetch(`${API_BASE}/stores-status`);
                 if (!response.ok) throw new Error("Failed to fetch status");
                 const data = await response.json();
-                
+
                 if (data.running_containers) {
-                     renderTenants(data.running_containers);
+                    renderTenants(data.running_containers);
                 }
             } catch (error) {
                 console.error("Fetch Error:", error);
@@ -287,7 +319,7 @@
         }
 
         async function deleteStore(tenantName) {
-            if(!confirm(`WARNING: Are you sure you want to completely delete ${tenantName}? This action destroys the database schema, all data, and stops the containers. This cannot be undone.`)){
+            if (!confirm(`WARNING: Are you sure you want to completely delete ${tenantName}? This action destroys the database schema, all data, and stops the containers. This cannot be undone.`)) {
                 return;
             }
 
@@ -300,7 +332,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showToast("Success", data.message);
                     fetchStores();
@@ -315,13 +347,13 @@
         // --- Event Listeners ---
         document.getElementById('createStoreForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const btn = document.getElementById('submitBtn');
             const loader = document.getElementById('loadingIndicator');
             const tenantName = document.getElementById('tenantName').value.trim();
             const theme = document.getElementById('theme').value;
-            
-            if(!tenantName) return;
+
+            if (!tenantName) return;
 
             // UI Loading state
             btn.classList.add('hidden');
@@ -335,7 +367,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (response.ok) {
                     showToast('Provisioned Successfully', `Tenant ${tenantName} is now live and routing online.`);
                     document.getElementById('createStoreForm').reset();
@@ -359,4 +391,5 @@
 
     </script>
 </body>
+
 </html>
