@@ -9,6 +9,10 @@ trigger:
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  - name: key_name
+    value: my-aws-key # Add your actual key pair name here or override it in Azure DevOps UI
+
 steps:
   - script: echo Hello, world!
     displayName: "Run a one-line script"
