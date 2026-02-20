@@ -194,7 +194,7 @@ DB_PASSWORD={context['DB_PASSWORD']}
 THEME={context['THEME']}
 
 # Medusa specific variables
-DATABASE_URL=postgres://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}
+DATABASE_URL=postgres://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}?sslmode=disable
 REDIS_URL=redis://redis-{context['TENANT_NAME']}:6379
 STORE_CORS=http://{context['TENANT_NAME']}.{context['DOMAIN']}
 ADMIN_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
