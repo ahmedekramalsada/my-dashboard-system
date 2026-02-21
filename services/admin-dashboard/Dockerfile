@@ -1,11 +1,17 @@
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
-# Copy the modern nginx configuration
+# Install apache2-utils for htpasswd
+RUN apk add --no-cache apache2-utils
+
+# Copy Nginx config and dashboard HTML
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Copy the static dashboard HTML
 COPY dashboard.html /usr/share/nginx/html/index.html
+
+# Copy and set up entrypoint
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Use entrypoint to generate htpasswd then start nginx
+ENTRYPOINT ["/entrypoint.sh"]

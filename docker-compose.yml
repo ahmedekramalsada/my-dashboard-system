@@ -1,14 +1,12 @@
 # =============================================================================
-# Control Plane — runs the Provisioning API and Super Admin Dashboard.
-# Assumes Traefik is running separately (see terraform/user_data.sh).
-# All services join 'traefik_default' so Traefik can route them,
-# AND so the API can resolve 'shared-postgres' by container name.
+# Control Plane — Production-Hardened
+# All secrets are loaded from .env — copy .env.example to .env first.
 # =============================================================================
 
 services:
 
   # ---------------------------------------------------------------------------
-  # Traefik Reverse Proxy (Local Development & Routing)
+  # Traefik — Reverse Proxy
   # ---------------------------------------------------------------------------
   traefik:
     image: traefik:v2.11
@@ -17,38 +15,41 @@ services:
     environment:
       - DOCKER_API_VERSION=1.44
     command:
-      - "--api.insecure=true"
+      - "--api.dashboard=false"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
+      - "--accesslog=true"
+      - "--log.level=WARN"
     ports:
       - "80:80"
-      - "8080:8080"
+      # port 8080 NOT exposed (Traefik UI disabled for security)
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
 
   # ---------------------------------------------------------------------------
-  # Shared PostgreSQL — the multi-tenant data plane.
-  # The API connects here to CREATE DATABASE / ROLE per tenant.
+  # Shared PostgreSQL
   # ---------------------------------------------------------------------------
   shared-postgres:
     image: postgres:15-alpine
     container_name: shared-postgres
     restart: always
     environment:
-      POSTGRES_USER: ${DB_ROOT_USER:-root}
-      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:-supersecretpassword123}
-      POSTGRES_DB: ${DB_ROOT_NAME:-defaultdb}
+      POSTGRES_USER: ${DB_ROOT_USER}
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD}
+      POSTGRES_DB: ${DB_ROOT_NAME}
     volumes:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_ROOT_USER:-root} -d ${DB_ROOT_NAME:-defaultdb}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_ROOT_USER} -d ${DB_ROOT_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    mem_limit: 512m
+    cpus: "1.0"
 
   # ---------------------------------------------------------------------------
-  # Python Provisioning Engine
+  # FastAPI Provisioning Engine
   # ---------------------------------------------------------------------------
   saas-api:
     build:
@@ -60,36 +61,37 @@ services:
       shared-postgres:
         condition: service_healthy
     environment:
-      - DOMAIN=${DOMAIN:-127.0.0.1.nip.io}
+      - DOMAIN=${DOMAIN}
       - DB_HOST=shared-postgres
       - DB_PORT=5432
-      - DB_USER=${DB_ROOT_USER:-root}
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-supersecretpassword123}
-      - DB_NAME=${DB_ROOT_NAME:-defaultdb}
+      - DB_USER=${DB_ROOT_USER}
+      - DB_PASSWORD=${DB_ROOT_PASSWORD}
+      - DB_NAME=${DB_ROOT_NAME}
       - TENANTS_DIR=/opt/saas/tenants
+      - API_KEY=${API_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
     volumes:
-      # CRITICAL: bind-mount the Docker socket so the API can manage sibling containers
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Shared tenants volume — the API writes compose files here; Docker reads them
-      # CRITICAL: Mount /opt/saas/tenants as a HOST bind-mount (not a named volume).
-      # The API writes storefront.html/admin.html here; tenant containers also
-      # bind-mount files from this exact host path. Named volumes don't expose
-      # the underlying host path to sibling docker compose invocations.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /opt/saas/tenants:/opt/saas/tenants
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    # Bound to 127.0.0.1 only — not reachable from public internet.
+    # The dashboard JS calls window.location.hostname:8000 directly.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.saas-api.rule=Host(`api.admin.${DOMAIN:-127.0.0.1.nip.io}`)"
+      - "traefik.http.routers.saas-api.rule=Host(`api.admin.${DOMAIN}`)"
       - "traefik.http.routers.saas-api.entrypoints=web"
+      - "traefik.http.services.saas-api.loadbalancer.server.port=8000"
+    mem_limit: 256m
+    cpus: "0.5"
 
   # ---------------------------------------------------------------------------
-  # Super Admin Dashboard — served via Nginx
+  # Super Admin Dashboard — Nginx + HTTP Basic Auth
   # ---------------------------------------------------------------------------
   saas-dashboard:
     build:
@@ -97,12 +99,16 @@ services:
       dockerfile: Dockerfile
     container_name: saas-dashboard
     restart: always
-    ports:
-      - "8081:80"
+    environment:
+      - DASHBOARD_USER=${DASHBOARD_USER:-admin}
+      - DASHBOARD_PASS=${DASHBOARD_PASS}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN:-127.0.0.1.nip.io}`)"
+      - "traefik.http.routers.saas-dashboard.rule=Host(`superadmin.${DOMAIN}`)"
       - "traefik.http.routers.saas-dashboard.entrypoints=web"
+      - "traefik.http.services.saas-dashboard.loadbalancer.server.port=80"
+    mem_limit: 64m
+    cpus: "0.25"
 
 # =============================================================================
 # Volumes

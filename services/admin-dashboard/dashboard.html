@@ -5,30 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SaaS Super Admin - Command Center</title>
-    <!-- Tailwind CSS for rapid UI building (Vibrant, Modern, Dark Mode default) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            500: '#8b5cf6', // Violet
-                            600: '#7c3aed',
-                            900: '#4c1d95',
-                        },
-                        dark: {
-                            bg: '#0f172a', // Slate 900
-                            card: '#1e293b', // Slate 800
-                        }
-                    }
+                        brand: { 500: '#8b5cf6', 600: '#7c3aed', 900: '#4c1d95' },
+                        dark: { bg: '#0f172a', card: '#1e293b' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
-        /* Glassmorphism effects */
         .glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(10px);
@@ -36,16 +29,8 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Smooth transitions */
-        .transition-all {
-            transition-property: all;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 300ms;
-        }
-
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
@@ -60,6 +45,33 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #475569;
         }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -70,10 +82,9 @@
         <div class="flex items-center gap-3">
             <div
                 class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-brand-500/30">
-                S
-            </div>
-            <h1 class="text-2xl font-bold text-white tracking-tight">Super Admin <span
-                    class="text-brand-500">Command</span></h1>
+                S</div>
+            <h1 class="text-2xl font-bold text-white tracking-tight">Super Admin <span class="text-brand-500">Command
+                    Center</span></h1>
         </div>
         <div class="flex items-center gap-4 text-sm font-medium">
             <span id="apiStatusBadge"
@@ -84,17 +95,16 @@
         </div>
     </header>
 
-    <!-- Main Content Grid -->
+    <!-- Main Grid -->
     <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        <!-- Left Column: Form -->
+        <!-- Left Column: Form + Stats -->
         <div class="lg:col-span-1 flex flex-col gap-6">
+            <!-- Provision Form -->
             <div class="glass rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                <!-- Decorative glow -->
                 <div
                     class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500">
                 </div>
-
                 <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20"
                         fill="currentColor">
@@ -104,31 +114,30 @@
                     </svg>
                     Provision New Tenant
                 </h2>
-
                 <form id="createStoreForm" class="flex flex-col gap-5 relative z-10">
                     <div>
                         <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store
                             Subdomain</label>
                         <div class="relative">
                             <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes"
-                                required
+                                required pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]"
+                                title="Lowercase letters, numbers or hyphens only (3-30 chars)"
                                 class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
-                            <span
-                                class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none">.example.com</span>
+                            <span class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none"
+                                id="domainSuffix">.nip.io</span>
                         </div>
+                        <p class="text-xs text-slate-500 mt-1">Lowercase letters, numbers, hyphens only</p>
                     </div>
-
                     <div>
                         <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Storefront
                             Theme</label>
                         <select id="theme" name="theme"
                             class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-                            <option value="fashion">Fashion & Apparel (Default)</option>
-                            <option value="electronics">Tech & Electronics</option>
-                            <option value="minimal">Minimalist Concept</option>
+                            <option value="fashion">👗 Fashion & Apparel</option>
+                            <option value="electronics">⚡ Tech & Electronics</option>
+                            <option value="minimal">○ Minimalist Concept</option>
                         </select>
                     </div>
-
                     <button type="submit" id="submitBtn"
                         class="mt-2 w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:from-brand-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
                         <span>Deploy Tenant</span>
@@ -138,7 +147,6 @@
                                 clip-rule="evenodd" />
                         </svg>
                     </button>
-                    <!-- Loading Spinner (Hidden by default) -->
                     <div id="loadingIndicator"
                         class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
                         <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -154,8 +162,8 @@
                 </form>
             </div>
 
-            <!-- Global Stats Widget -->
-            <div class="glass rounded-2xl p-6 shadow-lg flex-1">
+            <!-- Stats Widget -->
+            <div class="glass rounded-2xl p-6 shadow-lg">
                 <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
@@ -163,7 +171,7 @@
                         <div class="text-xs text-slate-400">Active Tenants</div>
                     </div>
                     <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                        <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">100%</div>
+                        <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">–</div>
                         <div class="text-xs text-slate-400">System Health</div>
                     </div>
                 </div>
@@ -171,8 +179,8 @@
         </div>
 
         <!-- Right Column: Tenant List -->
-        <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col h-[600px] overflow-hidden">
-            <div class="p-6 border-b border-slate-700/50 flex justify-between items-center bg-dark-card/50">
+        <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col" style="min-height: 600px;">
+            <div class="p-6 border-b border-slate-700/50 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20"
                         fill="currentColor">
@@ -181,7 +189,7 @@
                     </svg>
                     Active Environments
                 </h2>
-                <button onclick="fetchStores()"
+                <button onclick="fetchAll()"
                     class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -191,42 +199,208 @@
                     Refresh
                 </button>
             </div>
-
             <div class="flex-1 overflow-y-auto p-2" id="tenantsList">
-                <!-- Tenants will be injected here via JS -->
-                <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                    <svg class="animate-spin h-8 w-8 text-brand-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                        </circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
+                        </path>
                     </svg>
-                    <p>No active tenants found. Provision one from the left panel.</p>
+                    <p class="text-sm">Loading tenants...</p>
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- Notification Toast -->
+    <!-- Toast Notification -->
     <div id="toast"
-        class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3">
-        <!-- Icon injected by JS -->
+        class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 max-w-sm">
         <div id="toastIcon"></div>
         <div>
             <h4 id="toastTitle" class="text-sm font-bold text-white m-0">Notification</h4>
-            <p id="toastMessage" class="text-xs text-slate-300 m-0 mt-0.5">Message goes here</p>
+            <p id="toastMessage" class="text-xs text-slate-300 m-0 mt-0.5"></p>
+        </div>
+        <button onclick="hideToast()" class="ml-auto text-slate-500 hover:text-white text-lg leading-none">×</button>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="hidden modal-overlay">
+        <div class="glass rounded-2xl p-8 max-w-sm w-full m-4 shadow-2xl border border-red-500/30 fade-in">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Delete Tenant?</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-2">You are about to permanently delete:</p>
+            <div class="bg-slate-900 rounded-lg px-4 py-3 mb-4 border border-red-500/20">
+                <span id="deleteModalName" class="text-red-300 font-mono font-bold text-base"></span>
+            </div>
+            <p class="text-slate-500 text-xs mb-6">⚠️ This stops all containers, drops the database, and removes all
+                files. <strong class="text-red-400">This cannot be undone.</strong></p>
+            <div class="flex gap-3">
+                <button onclick="cancelDelete()"
+                    class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button onclick="confirmDelete()"
+                    class="flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors font-semibold">
+                    Yes, Delete
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Application Logic -->
+    <!-- Seed Admin Modal -->
+    <div id="seedModal" class="hidden modal-overlay">
+        <div class="glass rounded-2xl p-8 max-w-sm w-full m-4 shadow-2xl border border-blue-500/30 fade-in">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Seed Admin User</h3>
+            </div>
+            <p class="text-slate-400 text-sm mb-4">Create or re-create the admin user for <strong
+                    id="seedModalTenantName" class="text-white"></strong></p>
+            <div class="flex flex-col gap-3 mb-6">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Email</label>
+                    <input id="seedEmail" type="email" placeholder="admin@store.com"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Password <span class="text-slate-500">(leave blank
+                            to auto-generate)</span></label>
+                    <input id="seedPassword" type="text" placeholder="Auto-generate"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="cancelSeedModal()"
+                    class="flex-1 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors font-medium">
+                    Cancel
+                </button>
+                <button onclick="confirmSeedAdmin()"
+                    class="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors font-semibold">
+                    Create User
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seed Result Modal -->
+    <div id="seedResultModal" class="hidden modal-overlay" onclick="if(event.target===this) closeSeedResult()">
+        <div class="glass rounded-2xl p-8 max-w-sm w-full m-4 shadow-2xl border border-emerald-500/30 fade-in">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white">Admin User Created!</h3>
+            </div>
+            <div class="bg-slate-900 rounded-xl p-4 space-y-3 border border-slate-700 mb-4">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1">Email</div>
+                    <div id="seedResultEmail" class="text-white font-mono text-sm"></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1">Password</div>
+                    <div class="flex items-center gap-2">
+                        <div id="seedResultPassword"
+                            class="text-emerald-300 font-mono text-sm bg-slate-800 px-2 py-1 rounded flex-1 break-all">
+                        </div>
+                        <button
+                            onclick="navigator.clipboard.writeText(document.getElementById('seedResultPassword').textContent); showToast('Copied!','Password copied')"
+                            class="text-xs text-brand-400 hover:text-brand-300 shrink-0">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-amber-300 text-xs mb-5">⚠️ Save this password now — it cannot be recovered.</p>
+            <button onclick="closeSeedResult()"
+                class="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors">Got
+                it</button>
+        </div>
+    </div>
+
+    <!-- Credentials Modal -->
+    <div id="credModal" class="hidden modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="glass rounded-2xl p-8 max-w-md w-full m-4 shadow-2xl border border-brand-500/30 fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">🎉 Store Deployed!</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <p class="text-slate-400 text-sm mb-5">Your store is being provisioned. The admin user will be ready in ~60
+                seconds after migrations finish.</p>
+            <div class="bg-slate-900 rounded-xl p-4 mb-5 space-y-3 border border-slate-700">
+                <div>
+                    <div class="text-xs text-slate-500 mb-1">Admin URL</div>
+                    <a id="modal-admin-url" href="#" target="_blank"
+                        class="text-brand-400 text-sm font-mono hover:underline break-all"></a>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1">Storefront URL</div>
+                    <a id="modal-store-url" href="#" target="_blank"
+                        class="text-emerald-400 text-sm font-mono hover:underline break-all"></a>
+                </div>
+                <div class="border-t border-slate-700 pt-3">
+                    <div class="text-xs text-slate-500 mb-1">Login Email</div>
+                    <div id="modal-email" class="text-white text-sm font-mono"></div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 mb-1">Password</div>
+                    <div class="flex items-center gap-2">
+                        <div id="modal-password"
+                            class="text-white text-sm font-mono bg-slate-800 px-2 py-1 rounded flex-1 break-all"></div>
+                        <button onclick="copyPassword()"
+                            class="text-xs text-brand-400 hover:text-brand-300 shrink-0">Copy</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-xs text-amber-300">
+                ⚠️ Save these credentials now — the password is not stored and cannot be recovered.
+            </div>
+            <button onclick="closeModal()"
+                class="mt-5 w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-2.5 rounded-lg transition-colors">
+                Got it, close
+            </button>
+        </div>
+    </div>
+
+    <!-- Logs Modal -->
+    <div id="logsModal" class="hidden modal-overlay" onclick="if(event.target===this) closeLogsModal()">
+        <div class="glass rounded-2xl p-6 max-w-2xl w-full m-4 shadow-2xl border border-slate-600/50 fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white">📋 Logs — <span id="logsModalTitle"
+                        class="text-slate-400 font-mono"></span></h3>
+                <button onclick="closeLogsModal()"
+                    class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+            </div>
+            <div id="logsContent"
+                class="bg-black rounded-lg p-4 font-mono text-xs text-emerald-300 overflow-y-auto max-h-96 whitespace-pre-wrap leading-relaxed">
+                Loading…
+            </div>
+            <div class="flex gap-3 mt-4">
+                <button onclick="refreshLogs()"
+                    class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg transition-colors">↻
+                    Refresh</button>
+                <button onclick="closeLogsModal()"
+                    class="ml-auto px-4 py-2 border border-slate-600 text-slate-300 hover:bg-slate-700 text-sm rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // ------------------------------------------------------------------
-        // CONFIG — adjust these if your API runs on a different port or domain
-        // ------------------------------------------------------------------
         const CONFIG = {
             API_BASE: 'http://' + window.location.hostname + ':8000',
-            // Default domain used for tenant store links.
-            // When accessing via IP, we use nip.io to enable wildcard subdomains without a real domain setup.
             DOMAIN: (function () {
                 const host = window.location.hostname;
                 const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(host);
@@ -234,189 +408,416 @@
                 if (isIP) return host + '.nip.io';
                 return host.replace(/^superadmin\./, '');
             })(),
+            // API key for protected endpoints. Set this in the browser console or store in localStorage:
+            // localStorage.setItem('saas_api_key', 'your-key-here')
+            get API_KEY() { return localStorage.getItem('saas_api_key') || ''; },
         };
-        const API_BASE = CONFIG.API_BASE; // Shorthand for backwards compatibility
 
-        // --- UI Helpers ---
-        function showToast(title, message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.className = `fixed bottom-6 right-6 transform translate-y-0 opacity-100 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 border-${type === 'error' ? 'red-500' : 'brand-500'}`;
-
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-
-            const icon = type === 'error'
-                ? `<svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
-                : `<svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-            document.getElementById('toastIcon').innerHTML = icon;
-
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-                toast.classList.remove('translate-y-0', 'opacity-100');
-            }, 5000);
+        // ---- Generic API helper (injects X-API-Key on write requests) ----
+        async function apiCall(url, method = 'GET', body = null) {
+            const headers = { 'Content-Type': 'application/json' };
+            if (CONFIG.API_KEY) headers['X-API-Key'] = CONFIG.API_KEY;
+            const opts = { method, headers };
+            if (body) opts.body = JSON.stringify(body);
+            const res = await fetch(url, opts);
+            return res;
         }
 
-        function renderTenants(containers) {
+        // ---- Update domain suffix on load ----
+        document.getElementById('domainSuffix').textContent = '.' + CONFIG.DOMAIN;
+
+        // ---- Toast ----
+        function showToast(title, message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const borderColor = type === 'error' ? 'border-red-500' : type === 'warning' ? 'border-amber-500' : 'border-brand-500';
+            toast.className = `fixed bottom-6 right-6 transform translate-y-0 opacity-100 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 max-w-sm ${borderColor}`;
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastMessage').textContent = message;
+            const icons = {
+                error: `<svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+                warning: `<svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>`,
+                success: `<svg class="w-6 h-6 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+            };
+            document.getElementById('toastIcon').innerHTML = icons[type] || icons.success;
+            clearTimeout(window._toastTimeout);
+            window._toastTimeout = setTimeout(hideToast, 6000);
+        }
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            toast.className = 'fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 glass rounded-lg shadow-2xl p-4 border-l-4 z-50 flex items-center gap-3 max-w-sm border-slate-700';
+        }
+
+        // ---- Credentials Modal ----
+        function showCredentialsModal(data) {
+            document.getElementById('modal-admin-url').href = data.subdomains.admin;
+            document.getElementById('modal-admin-url').textContent = data.subdomains.admin;
+            document.getElementById('modal-store-url').href = data.subdomains.storefront;
+            document.getElementById('modal-store-url').textContent = data.subdomains.storefront;
+            document.getElementById('modal-email').textContent = data.credentials.email;
+            document.getElementById('modal-password').textContent = data.credentials.password;
+            document.getElementById('credModal').classList.remove('hidden');
+        }
+        function closeModal() {
+            document.getElementById('credModal').classList.add('hidden');
+        }
+        function copyPassword() {
+            navigator.clipboard.writeText(document.getElementById('modal-password').textContent);
+            showToast('Copied!', 'Password copied to clipboard.');
+        }
+
+        // ---- Render Tenants ----
+        function relativeTime(iso) {
+            const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function renderTenants(registryTenants, runningContainers) {
             const list = document.getElementById('tenantsList');
 
-            // Deduplicate to show logic "Tenants" rather than 2 containers per tenant
-            // A simple implementation for the demo: group by tenant name prefix
-            const tenantsMap_medusa = containers.filter(c => c.name.startsWith('medusa-'));
+            // Merge registry tenants + any running containers not yet in registry (legacy)
+            const registryNames = new Set((registryTenants || []).map(t => t.name));
+            const runningNames = new Set(runningContainers.map(c => c.name.replace('medusa-', '')));
 
-            if (!tenantsMap_medusa || tenantsMap_medusa.length === 0) {
-                document.getElementById('stat-active').innerText = "0";
+            // Build full tenant list: registry entries + live orphan containers
+            const orphans = runningContainers
+                .filter(c => !registryNames.has(c.name.replace('medusa-', '')))
+                .map(c => ({
+                    name: c.name.replace('medusa-', ''),
+                    theme: 'default',
+                    admin_email: '(legacy — not in registry)',
+                    created_at: null,
+                    _orphan: true,
+                }));
+            const allTenants = [...(registryTenants || []), ...orphans];
+
+            if (allTenants.length === 0) {
+                document.getElementById('stat-active').innerText = '0';
                 list.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        <p>No active tenants found. Provision one from the left panel.</p>
+                    <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        <p>No tenants provisioned yet. Deploy one from the left panel.</p>
                     </div>`;
                 return;
             }
 
-            document.getElementById('stat-active').innerText = tenantsMap_medusa.length;
+            const activeCount = allTenants.filter(t => runningNames.has(t.name)).length;
+            document.getElementById('stat-active').innerText = activeCount;
+            document.getElementById('stat-health').innerText = activeCount > 0 ? '✅' : '–';
 
-            let html = '<div class="grid grid-cols-1 gap-3 p-4">';
-            tenantsMap_medusa.forEach(container => {
-                const tenantName = container.name.replace('medusa-', '');
-                const isRunning = container.status === 'running';
+            const themeEmoji = { fashion: '👗', electronics: '⚡', minimal: '○', default: '🏪' };
 
-                html += `
-                <div class="bg-slate-900/80 hover:bg-slate-800 transition-colors border border-slate-700/50 rounded-xl p-4 flex items-center justify-between group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shadow-inner">
-                            <span class="text-xl font-bold text-slate-300">${tenantName.charAt(0).toUpperCase()}</span>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-white text-lg m-0 flex items-center gap-2">
-                                ${tenantName}
-                                <span class="flex h-2 w-2 relative">
-                                  ${isRunning ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>' : '<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>'}
-                                </span>
-                            </h4>
-                            <div class="flex gap-3 text-xs text-slate-400 mt-1">
-                                <a href="http://${tenantName}.${CONFIG.DOMAIN}" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Storefront ↗</a>
-                                <a href="http://admin.${tenantName}.${CONFIG.DOMAIN}/app" target="_blank" class="hover:text-brand-400 transition-colors flex items-center gap-1">Admin ↗</a>
+            list.innerHTML = `<div class="grid grid-cols-1 gap-3 p-4">` + allTenants.map(tenant => {
+                const container = runningContainers.find(c => c.name === `medusa-${tenant.name}`);
+                const isRunning = !!container;
+                const health = container?.health || 'none';
+                const isHealthy = health === 'healthy' || health === 'none';
+                const isStarting = isRunning && (health === 'starting' || health === 'unknown');
+
+                const emoji = themeEmoji[tenant.theme] || '🏪';
+                const adminUrl = `http://admin.${tenant.name}.${CONFIG.DOMAIN}/app`;
+                const storeUrl = `http://${tenant.name}.${CONFIG.DOMAIN}`;
+                const createdAt = tenant.created_at ? relativeTime(tenant.created_at) : '';
+
+                // Status badge
+                let statusBadge;
+                if (!isRunning) {
+                    statusBadge = `<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>`;
+                } else if (isStarting) {
+                    statusBadge = `<svg class="animate-spin h-3 w-3 text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
+                } else {
+                    statusBadge = `<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>`;
+                }
+
+                const statusLabel = !isRunning ? 'Stopped'
+                    : isStarting ? 'Starting…'
+                        : 'Running';
+                const statusClass = !isRunning ? 'bg-red-500/10 text-red-400'
+                    : isStarting ? 'bg-amber-500/10 text-amber-400'
+                        : 'bg-emerald-500/10 text-emerald-400';
+
+                // Admin link — disabled while starting
+                const adminLinkHtml = isStarting ? `
+                    <span title="Admin panel is starting up, please wait…"
+                        class="flex items-center gap-1.5 text-xs bg-slate-800/50 border border-slate-700/50 px-3 py-1.5 rounded-lg text-slate-500 cursor-not-allowed select-none">
+                        <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        Admin Starting… (~3 min)
+                    </span>` : `
+                    <a href="${adminUrl}" target="_blank" class="flex items-center gap-1.5 text-xs bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 px-3 py-1.5 rounded-lg text-brand-400 transition-colors">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Admin Panel ↗
+                    </a>`;
+
+                return `
+                <div class="bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/50 rounded-xl p-4 transition-all fade-in">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-11 h-11 rounded-xl bg-slate-800 flex items-center justify-center text-2xl border border-slate-700">${emoji}</div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-semibold text-white text-base">${tenant.name}</h4>
+                                    <span class="flex h-2 w-2 relative items-center">${statusBadge}</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
+                                </div>
+                                <div class="text-xs text-slate-400 mt-0.5">${tenant.admin_email}${createdAt ? ' · ' + createdAt : ''}</div>
                             </div>
                         </div>
+                        <!-- Action buttons — always visible -->
+                        <div class="flex gap-1 flex-wrap">
+                            ${!tenant._orphan ? `
+                            <button onclick="seedAdmin('${tenant.name}', '${tenant.admin_email}')" title="Re-seed admin user"
+                                class="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            </button>
+                            ${isRunning ? `
+                            <button onclick="suspendTenant('${tenant.name}')" title="Suspend (stops containers, keeps data)"
+                                class="p-2 text-amber-400 hover:text-white hover:bg-amber-500/30 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                            </button>` : `
+                            <button onclick="resumeTenant('${tenant.name}')" title="Resume (restart stopped containers)"
+                                class="p-2 text-emerald-400 hover:text-white hover:bg-emerald-500/30 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </button>`}
+                            <button onclick="viewLogs('${tenant.name}')" title="View Medusa logs"
+                                class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-lg transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </button>` : ''}
+                            <button onclick="deleteStore('${tenant.name}')" title="Delete Tenant (Irreversible)"
+                                class="p-2 text-red-400 hover:text-white hover:bg-red-500 rounded-lg transition-all border border-red-500/30">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div>
-                        <button onclick="deleteStore('${tenantName}')" class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all opacity-0 group-hover:opacity-100" title="Delete Tenant (Irreversible)">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
+                    <div class="flex gap-2 mt-2 flex-wrap">
+                        <a href="${storeUrl}" target="_blank" class="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300 transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                            Storefront ↗
+                        </a>
+                        ${adminLinkHtml}
+                        <span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 capitalize">${tenant.theme || 'default'} theme</span>
                     </div>
-                </div>
-                `;
-            });
-            html += '</div>';
-            list.innerHTML = html;
+                </div>`;
+            }).join('') + `</div>`;
         }
 
-        // --- API Interactions ---
-
-        async function fetchStores() {
+        // ---- API Calls ----
+        async function fetchAll() {
             try {
-                const response = await fetch(`${API_BASE}/stores-status`);
-                if (!response.ok) throw new Error("Failed to fetch status");
-                const data = await response.json();
-
-                if (data.running_containers) {
-                    renderTenants(data.running_containers);
-                }
-            } catch (error) {
-                console.error("Fetch Error:", error);
-                // Fail silently for dashboard loading state, show toast on manual refresh
+                const [registryRes, statusRes] = await Promise.all([
+                    fetch(`${CONFIG.API_BASE}/tenants`),
+                    fetch(`${CONFIG.API_BASE}/stores-status`),
+                ]);
+                const registryData = registryRes.ok ? await registryRes.json() : { tenants: [] };
+                const statusData = statusRes.ok ? await statusRes.json() : { running_containers: [] };
+                renderTenants(registryData.tenants || [], statusData.running_containers || []);
+            } catch (err) {
+                console.error('fetchAll error:', err);
+                document.getElementById('tenantsList').innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-2"><p>Could not reach API</p><p class="text-xs">${err.message}</p></div>`;
             }
         }
 
-        async function deleteStore(tenantName) {
-            if (!confirm(`WARNING: Are you sure you want to completely delete ${tenantName}? This action destroys the database schema, all data, and stops the containers. This cannot be undone.`)) {
+        // --- Suspend / Resume ---
+        async function suspendTenant(tenantName) {
+            showToast('Suspending…', `Stopping containers for ${tenantName}`, 'warning');
+            try {
+                const res = await apiCall(`${CONFIG.API_BASE}/tenants/${tenantName}/suspend`, 'POST');
+                const data = await res.json();
+                if (res.ok) { showToast('Suspended', data.message); await fetchAll(); }
+                else throw new Error(data.detail || 'Suspend failed');
+            } catch (err) { showToast('Error', err.message, 'error'); }
+        }
+
+        async function resumeTenant(tenantName) {
+            showToast('Resuming…', `Starting containers for ${tenantName}`, 'warning');
+            try {
+                const res = await apiCall(`${CONFIG.API_BASE}/tenants/${tenantName}/resume`, 'POST');
+                const data = await res.json();
+                if (res.ok) { showToast('Resumed', data.message); await fetchAll(); }
+                else throw new Error(data.detail || 'Resume failed');
+            } catch (err) { showToast('Error', err.message, 'error'); }
+        }
+
+        // --- Logs Modal ---
+        let _logsCurrentTenant = null;
+        async function viewLogs(tenantName) {
+            _logsCurrentTenant = tenantName;
+            document.getElementById('logsModalTitle').textContent = tenantName;
+            document.getElementById('logsContent').textContent = 'Loading…';
+            document.getElementById('logsModal').classList.remove('hidden');
+            clearInterval(window._refreshInterval);
+            await refreshLogs();
+        }
+        async function refreshLogs() {
+            if (!_logsCurrentTenant) return;
+            try {
+                const res = await apiCall(`${CONFIG.API_BASE}/tenants/${_logsCurrentTenant}/logs?lines=150`);
+                const data = await res.json();
+                const el = document.getElementById('logsContent');
+                el.textContent = res.ok ? (data.logs || '(no logs available)') : data.detail;
+                el.scrollTop = el.scrollHeight;
+            } catch (err) {
+                document.getElementById('logsContent').textContent = 'Error fetching logs: ' + err.message;
+            }
+        }
+        function closeLogsModal() {
+            _logsCurrentTenant = null;
+            document.getElementById('logsModal').classList.add('hidden');
+            window._refreshInterval = setInterval(fetchAll, 30000);
+        }
+
+        // --- Seed Admin Modal ---
+        let _pendingSeedTenant = null;
+
+        function seedAdmin(tenantName, currentEmail) {
+            _pendingSeedTenant = tenantName;
+            document.getElementById('seedModalTenantName').textContent = tenantName;
+            document.getElementById('seedEmail').value = currentEmail || `admin@${tenantName}.com`;
+            document.getElementById('seedPassword').value = '';
+            document.getElementById('seedModal').classList.remove('hidden');
+            // Pause auto-refresh while modal is open
+            clearInterval(window._refreshInterval);
+            setTimeout(() => document.getElementById('seedEmail').focus(), 50);
+        }
+
+        function cancelSeedModal() {
+            _pendingSeedTenant = null;
+            document.getElementById('seedModal').classList.add('hidden');
+            window._refreshInterval = setInterval(fetchAll, 30000);
+        }
+
+        async function confirmSeedAdmin() {
+            const tenantName = _pendingSeedTenant;
+            const email = document.getElementById('seedEmail').value.trim();
+            const password = document.getElementById('seedPassword').value.trim() || null;
+
+            if (!email) {
+                document.getElementById('seedEmail').focus();
                 return;
             }
 
+            _pendingSeedTenant = null;
+            document.getElementById('seedModal').classList.add('hidden');
+
+            showToast('Seeding Admin', `Creating admin user for ${tenantName}…`, 'warning');
             try {
-                showToast("Terminating...", `Tearing down infrastructure for ${tenantName}`);
-                const response = await fetch(`${API_BASE}/delete-store`, {
+                const res = await fetch(`${CONFIG.API_BASE}/tenants/${tenantName}/seed-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Done!', `Admin created: ${data.email}`);
+                    // Show credentials in a dedicated modal-style alert since password is one-time
+                    document.getElementById('seedResultEmail').textContent = data.email;
+                    document.getElementById('seedResultPassword').textContent = data.password;
+                    document.getElementById('seedResultModal').classList.remove('hidden');
+                } else {
+                    throw new Error(data.detail || 'Seeding failed');
+                }
+            } catch (err) {
+                showToast('Error', err.message, 'error');
+            } finally {
+                window._refreshInterval = setInterval(fetchAll, 30000);
+            }
+        }
+
+        function closeSeedResult() {
+            document.getElementById('seedResultModal').classList.add('hidden');
+        }
+
+        // --- Delete confirmation modal (replaces window.confirm which gets dismissed by DOM re-renders) ---
+        let _pendingDeleteName = null;
+
+        function deleteStore(tenantName) {
+            _pendingDeleteName = tenantName;
+            document.getElementById('deleteModalName').textContent = tenantName;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            // Pause auto-refresh while modal is shown
+            clearInterval(window._refreshInterval);
+        }
+
+        function cancelDelete() {
+            _pendingDeleteName = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+            // Resume auto-refresh
+            window._refreshInterval = setInterval(fetchAll, 30000);
+        }
+
+        async function confirmDelete() {
+            const tenantName = _pendingDeleteName;
+            _pendingDeleteName = null;
+            document.getElementById('deleteModal').classList.add('hidden');
+
+            showToast('Terminating...', `Tearing down ${tenantName}`, 'warning');
+            try {
+                const res = await fetch(`${CONFIG.API_BASE}/delete-store`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tenant_name: tenantName })
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showToast("Success", data.message);
-                    fetchStores();
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Deleted', data.message);
+                    await fetchAll();
                 } else {
-                    throw new Error(data.detail || "Deletion failed");
+                    throw new Error(data.detail || 'Deletion failed');
                 }
-            } catch (error) {
-                showToast("Error", error.message, "error");
+            } catch (err) {
+                showToast('Error', err.message, 'error');
+            } finally {
+                // Resume auto-refresh after delete
+                window._refreshInterval = setInterval(fetchAll, 30000);
             }
         }
 
-        // --- Event Listeners ---
+        // ---- Form submit ----
         document.getElementById('createStoreForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
             const btn = document.getElementById('submitBtn');
             const loader = document.getElementById('loadingIndicator');
-            const tenantName = document.getElementById('tenantName').value.trim();
+            const tenantName = document.getElementById('tenantName').value.trim().toLowerCase();
             const theme = document.getElementById('theme').value;
 
-            if (!tenantName) return;
-
-            // UI Loading state
             btn.classList.add('hidden');
             loader.classList.remove('hidden');
 
             try {
-                const response = await fetch(`${API_BASE}/create-store`, {
+                const res = await fetch(`${CONFIG.API_BASE}/create-store`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tenant_name: tenantName, theme: theme })
+                    body: JSON.stringify({ tenant_name: tenantName, theme })
                 });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showToast('Provisioned Successfully', `Tenant ${tenantName} is now live and routing online.`);
+                const data = await res.json();
+                if (res.ok) {
                     document.getElementById('createStoreForm').reset();
-                    // Small delay to let docker catch up before refreshing list
-                    setTimeout(fetchStores, 1000);
+                    showCredentialsModal(data);
+                    setTimeout(fetchAll, 2000);
                 } else {
-                    throw new Error(data.detail || "Unknown error occurred");
+                    throw new Error(data.detail || 'Unknown error');
                 }
-
-            } catch (error) {
-                showToast('Provisioning Failed', error.message, 'error');
+            } catch (err) {
+                showToast('Provisioning Failed', err.message, 'error');
             } finally {
-                // Restore UI
                 btn.classList.remove('hidden');
                 loader.classList.add('hidden');
             }
         });
 
-        // ------------------------------------------------------------------
-        // Health Check — updates the badge in the header on load
-        // ------------------------------------------------------------------
+        // ---- Health check ----
         async function checkApiHealth() {
             const badge = document.getElementById('apiStatusBadge');
             const dot = document.getElementById('apiStatusDot');
             const text = document.getElementById('apiStatusText');
             try {
-                const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(5000) });
+                const res = await fetch(`${CONFIG.API_BASE}/health`, { signal: AbortSignal.timeout(5000) });
                 if (res.ok) {
                     badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition-all duration-500';
                     dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
                     text.textContent = 'API Connected';
-                } else {
-                    throw new Error('non-200');
-                }
+                } else throw new Error();
             } catch {
                 badge.className = 'flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 transition-all duration-500';
                 dot.className = 'w-2 h-2 rounded-full bg-red-500';
@@ -424,14 +825,12 @@
             }
         }
 
-        // Initialize Data + start auto-refresh every 30 seconds
         document.addEventListener('DOMContentLoaded', async () => {
             await checkApiHealth();
-            await fetchStores();
-            setInterval(fetchStores, 30000);
+            await fetchAll();
+            window._refreshInterval = setInterval(fetchAll, 30000);
             setInterval(checkApiHealth, 60000);
         });
-
     </script>
 </body>
 

@@ -17,7 +17,7 @@ cd "$BUILD_DIR"
 
 # Inject dynamic cookieOptions to support local HTTP development
 echo "=> Injecting dynamic cookieOptions into medusa-config.ts..."
-sed -i.bak 's/databaseUrl: process.env.DATABASE_URL,/databaseUrl: process.env.DATABASE_URL,\n    cookieOptions: { secure: process.env.SECURE_COOKIES === "true" },/' medusa-config.ts
+sed -i.bak 's/databaseUrl: process.env.DATABASE_URL,/databaseUrl: process.env.DATABASE_URL,\n    cookieOptions: { secure: process.env.SECURE_COOKIES === "true", sameSite: process.env.SECURE_COOKIES === "true" ? "none" : "lax" },/' medusa-config.ts
 
 # Create start.sh script
 echo "=> Creating start.sh..."

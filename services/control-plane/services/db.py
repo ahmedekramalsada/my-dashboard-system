@@ -2,91 +2,176 @@ import asyncpg
 import logging
 import secrets
 import string
+from datetime import datetime, timezone
 from core.config import settings
 
 logger = logging.getLogger("ProvisioningAPI.DB")
 
-def generate_secure_password(length=16):
-    alphabet = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(alphabet) for i in range(length))
+# ─────────────────────────────────────────────────────────────────────────────
+# Connection Pool — shared across all requests (much more efficient than
+# opening a new connection per API call)
+# ─────────────────────────────────────────────────────────────────────────────
+_pool: asyncpg.Pool | None = None
 
+def _sys_dsn() -> str:
+    return (
+        f"postgres://{settings.DB_USER}:{settings.DB_PASSWORD}"
+        f"@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+    )
+
+async def get_pool() -> asyncpg.Pool:
+    global _pool
+    if _pool is None or _pool._closed:
+        _pool = await asyncpg.create_pool(
+            dsn=_sys_dsn(),
+            min_size=2,
+            max_size=10,
+            command_timeout=30,
+        )
+        logger.info("asyncpg connection pool created.")
+    return _pool
+
+async def close_pool():
+    global _pool
+    if _pool and not _pool._closed:
+        await _pool.close()
+        logger.info("asyncpg connection pool closed.")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+def generate_secure_password(length: int = 18) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
+
+def generate_secret_key(length: int = 32) -> str:
+    return secrets.token_hex(length)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tenant Registry
+# ─────────────────────────────────────────────────────────────────────────────
+async def ensure_tenant_registry():
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS tenants (
+                name         TEXT PRIMARY KEY,
+                theme        TEXT NOT NULL DEFAULT 'fashion',
+                admin_email  TEXT NOT NULL,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                db_name      TEXT NOT NULL,
+                db_user      TEXT NOT NULL,
+                status       TEXT NOT NULL DEFAULT 'running'
+            )
+        """)
+        # Add status column to existing deployments that don't have it
+        await conn.execute("""
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'running'
+        """)
+    logger.info("Tenant registry table ensured.")
+
+
+async def register_tenant(tenant_name: str, theme: str, admin_email: str, db_name: str, db_user: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO tenants (name, theme, admin_email, created_at, db_name, db_user, status)
+            VALUES ($1, $2, $3, $4, $5, $6, 'running')
+            ON CONFLICT (name) DO UPDATE
+              SET theme       = EXCLUDED.theme,
+                  admin_email = EXCLUDED.admin_email,
+                  created_at  = EXCLUDED.created_at,
+                  db_name     = EXCLUDED.db_name,
+                  db_user     = EXCLUDED.db_user,
+                  status      = 'running'
+        """, tenant_name, theme, admin_email, datetime.now(timezone.utc), db_name, db_user)
+
+
+async def deregister_tenant(tenant_name: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM tenants WHERE name = $1", tenant_name)
+
+
+async def set_tenant_status(tenant_name: str, status: str):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("UPDATE tenants SET status = $1 WHERE name = $2", status, tenant_name)
+
+
+async def list_tenants() -> list[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT name, theme, admin_email, created_at, db_name, db_user, status "
+            "FROM tenants ORDER BY created_at DESC"
+        )
+        return [dict(r) for r in rows]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tenant Database Lifecycle
+# ─────────────────────────────────────────────────────────────────────────────
 async def provision_tenant_db(tenant_name: str) -> dict:
     """
-    Connects to the shared PostgreSQL instance and creates a new database and role for the tenant.
-    This ensures strict isolation per tenant.
-    Returns the credentials to be passed to the tenant's container.
+    Create an isolated PostgreSQL database + role for a tenant.
+    If they already exist, the role password is synced to prevent drift.
     """
-    # Sanitize tenant name for Postgres identifier
-    safe_tenant_name = tenant_name.replace("-", "_").lower()
-    db_name = f"db_{safe_tenant_name}"
-    role_name = f"user_{safe_tenant_name}"
+    safe = tenant_name.replace("-", "_").lower()
+    db_name = f"db_{safe}"
+    role_name = f"user_{safe}"
     password = generate_secure_password()
 
-    sys_dsn = f"postgres://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-    
+    pool = await get_pool()
+    # Use a raw connection for DDL (CREATE DATABASE can't run in a transaction)
+    conn = await asyncpg.connect(dsn=_sys_dsn())
     try:
-        # We use asyncpg to connect to the default DB
-        conn = await asyncpg.connect(sys_dsn)
-        
-        # Check if DB already exists (Idempotency)
-        db_exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", db_name)
+        db_exists = await conn.fetchval(
+            "SELECT 1 FROM pg_database WHERE datname = $1", db_name
+        )
         if not db_exists:
-            # Cannot use parameterized queries for CREATE DATABASE/ROLE, so we use sanitized variables safely
-            logger.info(f"Creating role {role_name}...")
+            logger.info(f"Creating role {role_name} and database {db_name}...")
             await conn.execute(f"CREATE ROLE {role_name} WITH LOGIN PASSWORD '{password}';")
-            
-            logger.info(f"Creating database {db_name}...")
             await conn.execute(f"CREATE DATABASE {db_name} OWNER {role_name};")
-            
-            # Note: Postgres automatically grants all rights to the OWNER on the newly created database.
-            logger.info(f"Database {db_name} and role {role_name} created successfully.")
+            # Postgres 15+ requires explicit CONNECT grant
+            await conn.execute(f"GRANT CONNECT ON DATABASE {db_name} TO {role_name};")
+            logger.info(f"Provisioned: {db_name} / {role_name}")
         else:
-            logger.warning(f"Database {db_name} already exists. Skipping creation to remain idempotent.")
-            # Note: in a real system we might want to return existing password from Vault or recreate it.
-            # For this MVP, if it exists we might not know the old password, but we assume it's a fresh creation.
-
+            # Sync password to avoid auth drift after API container restarts
+            logger.warning(f"{db_name} already exists — syncing role password.")
+            await conn.execute(f"ALTER ROLE {role_name} WITH PASSWORD '{password}';")
+    finally:
         await conn.close()
-        
-        return {
-            "DB_HOST": settings.DB_HOST,
-            "DB_PORT": settings.DB_PORT,
-            "DB_NAME": db_name,
-            "DB_USER": role_name,
-            "DB_PASSWORD": password
-        }
 
-    except Exception as e:
-        logger.error(f"Failed to provision database for {tenant_name}: {str(e)}")
-        raise e
+    return {
+        "DB_HOST": settings.DB_HOST,
+        "DB_PORT": settings.DB_PORT,
+        "DB_NAME": db_name,
+        "DB_USER": role_name,
+        "DB_PASSWORD": password,
+    }
+
 
 async def delete_tenant_db(tenant_name: str):
-    """
-    Connects to the shared DB, drops the tenant's database and role.
-    """
-    safe_tenant_name = tenant_name.replace("-", "_").lower()
-    db_name = f"db_{safe_tenant_name}"
-    role_name = f"user_{safe_tenant_name}"
+    safe = tenant_name.replace("-", "_").lower()
+    db_name = f"db_{safe}"
+    role_name = f"user_{safe}"
 
-    sys_dsn = f"postgres://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-    
+    conn = await asyncpg.connect(dsn=_sys_dsn())
     try:
-        conn = await asyncpg.connect(sys_dsn)
-        
-        db_exists = await conn.fetchval("SELECT 1 FROM pg_database WHERE datname = $1", db_name)
+        db_exists = await conn.fetchval(
+            "SELECT 1 FROM pg_database WHERE datname = $1", db_name
+        )
         if db_exists:
-            logger.info(f"Dropping database {db_name}...")
-            # Cannot drop a database while it's in use, might need to terminate connections first in a true prod environment
+            # Terminate active connections before dropping
+            await conn.execute(
+                "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=$1 AND pid<>pg_backend_pid()",
+                db_name,
+            )
             await conn.execute(f"DROP DATABASE {db_name};")
-            
-            logger.info(f"Dropping role {role_name}...")
-            await conn.execute(f"DROP ROLE {role_name};")
-            logger.info(f"Database {db_name} and role {role_name} deleted successfully.")
+            await conn.execute(f"DROP ROLE IF EXISTS {role_name};")
+            logger.info(f"Dropped {db_name} and {role_name}")
         else:
-            logger.warning(f"Database {db_name} does not exist. Skipping deletion.")
-
+            logger.warning(f"Database {db_name} not found — skipping.")
+    finally:
         await conn.close()
-        return True
-
-    except Exception as e:
-        logger.error(f"Failed to delete database for {tenant_name}: {str(e)}")
-        raise e
+    return True
