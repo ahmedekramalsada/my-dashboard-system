@@ -15,6 +15,10 @@ git clone --depth 1 https://github.com/medusajs/medusa-starter-default.git "$BUI
 
 cd "$BUILD_DIR"
 
+# Inject dynamic cookieOptions to support local HTTP development
+echo "=> Injecting dynamic cookieOptions into medusa-config.ts..."
+sed -i.bak 's/databaseUrl: process.env.DATABASE_URL,/databaseUrl: process.env.DATABASE_URL,\n    cookieOptions: { secure: process.env.SECURE_COOKIES === "true" },/' medusa-config.ts
+
 # Create start.sh script
 echo "=> Creating start.sh..."
 cat > start.sh << 'EOF'

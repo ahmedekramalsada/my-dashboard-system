@@ -142,6 +142,7 @@ THEME={context['THEME']}
 # Medusa specific variables
 DATABASE_URL=postgres://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}?sslmode=disable
 REDIS_URL=redis://redis-{context['TENANT_NAME']}:6379
+SECURE_COOKIES=false
 STORE_CORS=http://{context['TENANT_NAME']}.{context['DOMAIN']}
 ADMIN_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
 AUTH_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']},http://{context['TENANT_NAME']}.{context['DOMAIN']}
