@@ -415,11 +415,24 @@
 
         // ---- Generic API helper (injects X-API-Key on write requests) ----
         async function apiCall(url, method = 'GET', body = null) {
+            let apiKey = CONFIG.API_KEY;
             const headers = { 'Content-Type': 'application/json' };
-            if (CONFIG.API_KEY) headers['X-API-Key'] = CONFIG.API_KEY;
-            const opts = { method, headers };
+            if (apiKey) headers['X-API-Key'] = apiKey;
+            let opts = { method, headers };
             if (body) opts.body = JSON.stringify(body);
-            const res = await fetch(url, opts);
+
+            let res = await fetch(url, opts);
+
+            // If API key is missing or invalid, ask the user directly via prompt
+            if (res.status === 403) {
+                const newKey = window.prompt("Admin API Key required (check .env for API_KEY):", apiKey);
+                if (newKey) {
+                    localStorage.setItem('saas_api_key', newKey.trim());
+                    // Retry with new key
+                    opts.headers['X-API-Key'] = newKey.trim();
+                    res = await fetch(url, opts);
+                }
+            }
             return res;
         }
 
