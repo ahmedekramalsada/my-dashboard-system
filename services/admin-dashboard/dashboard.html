@@ -702,11 +702,7 @@
 
             showToast('Seeding Admin', `Creating admin user for ${tenantName}…`, 'warning');
             try {
-                const res = await fetch(`${CONFIG.API_BASE}/tenants/${tenantName}/seed-admin`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
+                const res = await apiCall(`${CONFIG.API_BASE}/tenants/${tenantName}/seed-admin`, 'POST', { email, password });
                 const data = await res.json();
                 if (res.ok) {
                     showToast('Done!', `Admin created: ${data.email}`);
@@ -753,11 +749,7 @@
 
             showToast('Terminating...', `Tearing down ${tenantName}`, 'warning');
             try {
-                const res = await fetch(`${CONFIG.API_BASE}/delete-store`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tenant_name: tenantName })
-                });
+                const res = await apiCall(`${CONFIG.API_BASE}/delete-store`, 'POST', { tenant_name: tenantName });
                 const data = await res.json();
                 if (res.ok) {
                     showToast('Deleted', data.message);
@@ -785,11 +777,7 @@
             loader.classList.remove('hidden');
 
             try {
-                const res = await fetch(`${CONFIG.API_BASE}/create-store`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tenant_name: tenantName, theme })
-                });
+                const res = await apiCall(`${CONFIG.API_BASE}/create-store`, 'POST', { tenant_name: tenantName, theme });
                 const data = await res.json();
                 if (res.ok) {
                     document.getElementById('createStoreForm').reset();
