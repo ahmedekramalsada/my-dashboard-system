@@ -1,0 +1,82 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # MedusaJS Backend — uses the pre-built base image
+  # ---------------------------------------------------------------------------
+  medusa:
+    image: my-registry/medusa-base:latest
+    pull_policy: never
+    container_name: medusa-${TENANT_NAME}
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin-${TENANT_NAME}.rule=Host(`admin.${TENANT_NAME}.${DOMAIN}`)"
+      - "traefik.http.routers.admin-${TENANT_NAME}.entrypoints=web"
+      - "traefik.http.services.admin-${TENANT_NAME}.loadbalancer.server.port=9000"
+    volumes:
+      - "{{TENANT_NAME}}-uploads:/app/uploads"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ---------------------------------------------------------------------------
+  # Redis (Isolated per tenant)
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: redis-${TENANT_NAME}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 192M
+
+  # ---------------------------------------------------------------------------
+  # Storefront — Nginx serving the generated themed HTML page
+  # ---------------------------------------------------------------------------
+  storefront:
+    image: nginx:alpine
+    container_name: storefront-${TENANT_NAME}
+    restart: unless-stopped
+    stop_grace_period: 5s
+    volumes:
+      - ./storefront.html:/usr/share/nginx/html/index.html:ro
+      - ./storefront-nginx.conf:/etc/nginx/nginx.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.store-${TENANT_NAME}.rule=Host(`${TENANT_NAME}.${DOMAIN}`)"
+      - "traefik.http.routers.store-${TENANT_NAME}.entrypoints=web"
+      - "traefik.http.services.store-${TENANT_NAME}.loadbalancer.server.port=80"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+# Persistent volume for Medusa product images
+volumes:
+  "{{TENANT_NAME}}-uploads":
+
+# All tenant containers join the shared Traefik network
+networks:
+  default:
+    name: traefik_default
+    external: true

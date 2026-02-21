@@ -1,0 +1,30 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+
+    server {
+        listen 80;
+        server_name {{TENANT_NAME}}.{{DOMAIN}};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # The HTML Storefront
+        location / {
+            try_files $uri $uri/ /index.html;
+            
+            # Inject SAAS context for JS
+            sub_filter '</head>' '<script>window.SAAS_API=""; window.SAAS_TENANT="{{TENANT_NAME}}";</script></head>';
+            sub_filter_once on;
+        }
+
+        # No API adapter layer for static sites
+    }
+}

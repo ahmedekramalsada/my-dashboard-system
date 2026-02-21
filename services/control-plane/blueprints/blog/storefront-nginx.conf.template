@@ -1,0 +1,58 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+
+    server {
+        listen 80;
+        server_name {{TENANT_NAME}}.{{DOMAIN}};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Use Docker's internal DNS resolver for dynamic hostname resolution
+        resolver 127.0.0.11 valid=30s;
+        set $blog_backend "http://ghost-{{TENANT_NAME}}:2368";
+
+        location / {
+            try_files $uri $uri/ /index.html;
+            sub_filter '</head>' '<script>window.SAAS_API=""; window.SAAS_TENANT="{{TENANT_NAME}}";</script></head>';
+            sub_filter_once on;
+        }
+
+        # Ghost Content API proxy (Requires Client API key in JS frontend usually, 
+        # but we proxy raw requests or allow public access if configured)
+        location /api/items {
+            # Proxying to Ghost Content API posts endpoint
+            proxy_pass $blog_backend/ghost/api/content/posts/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        location ~ ^/api/items/(.*)$ {
+            set $item_id $1;
+            proxy_pass $blog_backend/ghost/api/content/posts/$item_id;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        location /api/categories {
+            proxy_pass $blog_backend/ghost/api/content/tags/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        # Raw pass-through
+        location /api/raw/ {
+            rewrite ^/api/raw/(.*) /$1 break;
+            proxy_pass $blog_backend;
+            proxy_set_header Host $host;
+        }
+    }
+}

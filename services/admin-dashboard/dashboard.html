@@ -95,123 +95,224 @@
         </div>
     </header>
 
-    <!-- Main Grid -->
-    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Navigation Tabs -->
+    <div class="w-full max-w-6xl flex gap-6 border-b border-slate-700/50 mb-8 pb-1">
+        <button onclick="switchTab('sites')" id="tab-sites"
+            class="px-2 py-3 text-white font-medium border-b-2 border-brand-500 transition-colors">
+            🏠 Environments
+        </button>
+        <button onclick="switchTab('templates')" id="tab-templates"
+            class="px-2 py-3 text-slate-400 hover:text-slate-200 font-medium border-b-2 border-transparent transition-colors">
+            🎨 Templates
+        </button>
+    </div>
 
-        <!-- Left Column: Form + Stats -->
-        <div class="lg:col-span-1 flex flex-col gap-6">
-            <!-- Provision Form -->
-            <div class="glass rounded-2xl p-6 shadow-xl relative overflow-hidden group">
-                <div
-                    class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500">
-                </div>
-                <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20"
-                        fill="currentColor">
-                        <path fill-rule="evenodd"
-                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                            clip-rule="evenodd" />
-                    </svg>
-                    Provision New Tenant
-                </h2>
-                <form id="createStoreForm" class="flex flex-col gap-5 relative z-10">
-                    <div>
-                        <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store
-                            Subdomain</label>
-                        <div class="relative">
-                            <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes"
-                                required pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]"
-                                title="Lowercase letters, numbers or hyphens only (3-30 chars)"
-                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
-                            <span class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none"
-                                id="domainSuffix">.nip.io</span>
-                        </div>
-                        <p class="text-xs text-slate-500 mt-1">Lowercase letters, numbers, hyphens only</p>
+    <!-- SITES VIEW -->
+    <div id="sites-view" class="w-full max-w-6xl">
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Left Column: Form + Stats -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <!-- Provision Form -->
+                <div class="glass rounded-2xl p-6 shadow-xl relative overflow-hidden group">
+                    <div
+                        class="absolute -top-24 -right-24 w-48 h-48 bg-brand-500/20 rounded-full blur-3xl group-hover:bg-brand-500/30 transition-all duration-500">
                     </div>
-                    <div>
-                        <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Storefront
-                            Theme</label>
-                        <select id="theme" name="theme"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
-                            <option value="fashion">👗 Fashion & Apparel</option>
-                            <option value="electronics">⚡ Tech & Electronics</option>
-                            <option value="minimal">○ Minimalist Concept</option>
-                        </select>
-                    </div>
-                    <button type="submit" id="submitBtn"
-                        class="mt-2 w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:from-brand-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
-                        <span>Deploy Tenant</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-500" viewBox="0 0 20 20"
+                            fill="currentColor">
                             <path fill-rule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+                                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                                 clip-rule="evenodd" />
                         </svg>
+                        Provision New Tenant
+                    </h2>
+                    <form id="createStoreForm" class="flex flex-col gap-5 relative z-10">
+                        <div>
+                            <label for="tenantName" class="block text-sm font-medium text-slate-400 mb-1.5">Store
+                                Subdomain</label>
+                            <div class="relative">
+                                <input type="text" id="tenantName" name="tenantName" placeholder="e.g. awesome-shoes"
+                                    required pattern="[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]"
+                                    title="Lowercase letters, numbers or hyphens only (3-30 chars)"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all">
+                                <span class="absolute right-4 top-2.5 text-slate-500 text-sm pointer-events-none"
+                                    id="domainSuffix">.nip.io</span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Lowercase letters, numbers, hyphens only</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="siteType" class="block text-sm font-medium text-slate-400 mb-1.5">Site
+                                    Type</label>
+                                <select id="siteType" name="siteType"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                                    <option value="ecommerce">🛒 E-Commerce (Medusa)</option>
+                                    <option value="blog">📝 Blog (Ghost)</option>
+                                    <option value="cms">🗂️ Headless CMS (Directus)</option>
+                                    <option value="booking">📅 Booking (Cal.com)</option>
+                                    <option value="static">📄 Static HTML</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="theme" class="block text-sm font-medium text-slate-400 mb-1.5">Initial
+                                    Data</label>
+                                <select id="theme" name="theme"
+                                    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                                    <option value="fashion">👗 Fashion</option>
+                                    <option value="electronics">⚡ Electronics</option>
+                                    <option value="minimal">○ Minimalist</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="template" class="block text-sm font-medium text-slate-400 mb-1.5">Frontend
+                                Template (Optional)</label>
+                            <select id="template" name="template"
+                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white appearance-none focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all">
+                                <option value="">-- Use default built-in template --</option>
+                                <!-- Populated dynamically via JS -->
+                            </select>
+                        </div>
+                        <button type="submit" id="submitBtn"
+                            class="mt-2 w-full bg-gradient-to-r from-brand-600 to-fuchsia-600 hover:from-brand-500 hover:to-fuchsia-500 text-white font-semibold py-3 px-4 rounded-lg shadow-lg shadow-brand-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                            <span>Deploy Tenant</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div id="loadingIndicator"
+                            class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
+                            <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4">
+                                </circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                            Provisioning Architecture...
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Stats Widget -->
+                <div class="glass rounded-2xl p-6 shadow-lg">
+                    <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div class="text-3xl font-bold text-white mb-1" id="stat-active">0</div>
+                            <div class="text-xs text-slate-400">Active Tenants</div>
+                        </div>
+                        <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
+                            <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">–</div>
+                            <div class="text-xs text-slate-400">System Health</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Tenant List -->
+            <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col" style="min-height: 600px;">
+                <div class="p-6 border-b border-slate-700/50 flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path
+                                d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+                        </svg>
+                        Active Environments
+                    </h2>
+                    <button onclick="fetchAll()"
+                        class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Refresh
                     </button>
-                    <div id="loadingIndicator"
-                        class="hidden flex items-center justify-center text-sm text-brand-400 gap-2 mt-2 font-medium">
-                        <svg class="animate-spin h-5 w-5 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24">
+                </div>
+                <div class="flex-1 overflow-y-auto p-2" id="tenantsList">
+                    <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
+                        <svg class="animate-spin h-8 w-8 text-brand-500" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                             </circle>
                             <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
                             </path>
                         </svg>
-                        Provisioning Architecture...
-                    </div>
-                </form>
-            </div>
-
-            <!-- Stats Widget -->
-            <div class="glass rounded-2xl p-6 shadow-lg">
-                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Platform Metrics</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                        <div class="text-3xl font-bold text-white mb-1" id="stat-active">0</div>
-                        <div class="text-xs text-slate-400">Active Tenants</div>
-                    </div>
-                    <div class="bg-slate-900/50 rounded-lg p-4 border border-slate-700/50">
-                        <div class="text-3xl font-bold text-emerald-400 mb-1" id="stat-health">–</div>
-                        <div class="text-xs text-slate-400">System Health</div>
+                        <p class="text-sm">Loading tenants...</p>
                     </div>
                 </div>
+        </main>
+    </div> <!-- /SITES VIEW -->
+
+    <!-- TEMPLATES VIEW -->
+    <div id="templates-view" class="hidden w-full max-w-6xl flex flex-col gap-8 fade-in">
+
+        <!-- Upload Box -->
+        <div
+            class="glass rounded-2xl p-8 shadow-xl text-center border border-dashed border-slate-600/50 hover:border-brand-500/50 transition-colors relative">
+            <input type="file" id="templateFileInput" accept=".html"
+                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="handleTemplateUpload(event)">
+            <div class="flex flex-col items-center justify-center pointer-events-none">
+                <div class="w-16 h-16 rounded-full bg-brand-500/10 flex items-center justify-center mb-4">
+                    <svg class="w-8 h-8 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Upload Custom Template</h3>
+                <p class="text-slate-400 text-sm max-w-md mx-auto">Drop a single <code
+                        class="bg-slate-800 px-1 rounded">.html</code> file here, or click to browse. It will be
+                    instantly available to assign to any active tenant.</p>
+                <button
+                    class="mt-6 px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors pointer-events-auto">
+                    Select File
+                </button>
+            </div>
+
+            <div id="uploadIndicator"
+                class="hidden absolute inset-0 bg-slate-900/80 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-10">
+                <svg class="animate-spin h-8 w-8 text-brand-500 mb-3" viewBox="0 0 24 24" fill="none">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p class="text-brand-400 font-medium">Uploading...</p>
             </div>
         </div>
 
-        <!-- Right Column: Tenant List -->
-        <div class="lg:col-span-2 glass rounded-2xl shadow-xl flex flex-col" style="min-height: 600px;">
+        <!-- Templates List -->
+        <div class="glass rounded-2xl shadow-xl flex flex-col min-h-[400px]">
             <div class="p-6 border-b border-slate-700/50 flex justify-between items-center">
                 <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" viewBox="0 0 20 20"
-                        fill="currentColor">
-                        <path
-                            d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM14 11a1 1 0 011 1v1h1a1 1 0 110 2h-1v1a1 1 0 11-2 0v-1h-1a1 1 0 110-2h1v-1a1 1 0 011-1z" />
+                    <svg class="w-5 h-5 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
-                    Active Environments
+                    Available Templates
                 </h2>
-                <button onclick="fetchAll()"
+                <button onclick="fetchTemplates()"
                     class="text-sm text-slate-400 hover:text-white transition-colors flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                     Refresh
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto p-2" id="tenantsList">
-                <div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
-                    <svg class="animate-spin h-8 w-8 text-brand-500" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
-                        </circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z">
-                        </path>
-                    </svg>
-                    <p class="text-sm">Loading tenants...</p>
-                </div>
+
+            <div id="templatesList" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Populated by JS -->
             </div>
         </div>
-    </main>
+
+    </div> <!-- /TEMPLATES VIEW -->
 
     <!-- Toast Notification -->
     <div id="toast"
@@ -521,28 +622,29 @@
             document.getElementById('stat-health').innerText = activeCount > 0 ? '✅' : '–';
 
             const themeEmoji = { fashion: '👗', electronics: '⚡', minimal: '○', default: '🏪' };
+            const typeEmoji = { ecommerce: '🛒', blog: '📝', cms: '🗂️', booking: '📅', static: '📄' };
 
             list.innerHTML = `<div class="grid grid-cols-1 gap-3 p-4">` + allTenants.map(tenant => {
-                const container = runningContainers.find(c => c.name === `medusa-${tenant.name}`);
+                const container = runningContainers.find(c => c.name === `medusa-${tenant.name}` || c.name === `ghost-${tenant.name}` || c.name === `directus-${tenant.name}` || c.name === `booking-${tenant.name}` || c.name === `storefront-${tenant.name}`);
                 const isRunning = !!container;
                 const health = container?.health || 'none';
                 const isHealthy = health === 'healthy' || health === 'none';
                 const isStarting = isRunning && (health === 'starting' || health === 'unknown');
 
-                const emoji = themeEmoji[tenant.theme] || '🏪';
-                const adminUrl = `http://admin.${tenant.name}.${CONFIG.DOMAIN}/app`;
+                const statusBadge = !isRunning ? `<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>`
+                    : isStarting ? `<svg class="animate-spin h-3 w-3 text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`
+                        : `<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>`;
+
+                const emoji = tenant.site_type === 'ecommerce' ? (themeEmoji[tenant.theme] || '🏪') : (typeEmoji[tenant.site_type] || '🌐');
+
+                let adminUrl;
+                if (tenant.site_type === 'ecommerce') adminUrl = `http://admin.${tenant.name}.${CONFIG.DOMAIN}/app`;
+                else if (tenant.site_type === 'blog') adminUrl = `http://admin.${tenant.name}.${CONFIG.DOMAIN}/ghost`;
+                else if (tenant.site_type === 'cms' || tenant.site_type === 'booking') adminUrl = `http://admin.${tenant.name}.${CONFIG.DOMAIN}`;
+                else adminUrl = null;
+
                 const storeUrl = `http://${tenant.name}.${CONFIG.DOMAIN}`;
                 const createdAt = tenant.created_at ? relativeTime(tenant.created_at) : '';
-
-                // Status badge
-                let statusBadge;
-                if (!isRunning) {
-                    statusBadge = `<span class="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>`;
-                } else if (isStarting) {
-                    statusBadge = `<svg class="animate-spin h-3 w-3 text-amber-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>`;
-                } else {
-                    statusBadge = `<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>`;
-                }
 
                 const statusLabel = !isRunning ? 'Stopped'
                     : isStarting ? 'Starting…'
@@ -609,7 +711,8 @@
                             Storefront ↗
                         </a>
                         ${adminLinkHtml}
-                        <span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 capitalize">${tenant.theme || 'default'} theme</span>
+                        <span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 capitalize">${tenant.site_type || 'ecommerce'}</span>
+                        ${tenant.site_type === 'ecommerce' ? `<span class="text-xs bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-400 capitalize">${tenant.theme || 'default'} theme</span>` : ''}
                     </div>
                 </div>`;
             }).join('') + `</div>`;
@@ -628,6 +731,106 @@
             } catch (err) {
                 console.error('fetchAll error:', err);
                 document.getElementById('tenantsList').innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-slate-500 gap-2"><p>Could not reach API</p><p class="text-xs">${err.message}</p></div>`;
+            }
+        }
+
+        // --- Templates Logic ---
+        let _allTemplates = [];
+
+        async function fetchTemplates() {
+            try {
+                const res = await apiCall(`${CONFIG.API_BASE}/templates`);
+                if (!res.ok) throw new Error("Failed to fetch templates");
+                const data = await res.json();
+                _allTemplates = data.templates || [];
+                renderTemplates();
+                updateTemplateDropdowns();
+            } catch (err) {
+                console.error('fetchTemplates error:', err);
+            }
+        }
+
+        function renderTemplates() {
+            const list = document.getElementById('templatesList');
+            if (_allTemplates.length === 0) {
+                list.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center h-48 text-slate-500 gap-2 border border-dashed border-slate-700 rounded-xl">
+                        <p>No custom templates uploaded yet.</p>
+                        <p class="text-xs">Upload one using the area above.</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = _allTemplates.map(t => {
+                const sizeKb = (t.size / 1024).toFixed(1);
+                const date = new Date(t.modified * 1000).toLocaleDateString();
+                return `
+                <div class="bg-slate-900/80 hover:bg-slate-800/80 border border-slate-700/50 rounded-xl p-4 transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-start justify-between mb-2">
+                            <span class="bg-brand-500/20 text-brand-300 text-xs px-2 py-1 rounded font-mono">.HTML</span>
+                            <span class="text-xs text-slate-500">${sizeKb} KB</span>
+                        </div>
+                        <h4 class="font-bold text-white text-md truncate" title="${t.name}">${t.name}</h4>
+                        <p class="text-xs text-slate-400 mt-1">Uploaded: ${date}</p>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateTemplateDropdowns() {
+            const select = document.getElementById('template');
+            if (!select) return;
+            const currentVal = select.value;
+            select.innerHTML = `<option value="">-- Use default built-in template --</option>` +
+                _allTemplates.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+            if (currentVal && _allTemplates.find(t => t.name === currentVal)) {
+                select.value = currentVal;
+            }
+        }
+
+        async function handleTemplateUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (!file.name.endsWith('.html')) {
+                showToast('Invalid file', 'Only .html files are allowed', 'error');
+                return;
+            }
+
+            const indicator = document.getElementById('uploadIndicator');
+            indicator.classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                let apiKey = CONFIG.API_KEY;
+                if (!apiKey) {
+                    apiKey = window.prompt("Admin API Key required:");
+                    if (apiKey) localStorage.setItem('saas_api_key', apiKey.trim());
+                    else throw new Error("API Key cancelled");
+                }
+
+                const res = await fetch(`${CONFIG.API_BASE}/templates`, {
+                    method: 'POST',
+                    headers: { 'X-API-Key': apiKey },
+                    body: formData // Note: no Content-Type header so browser sets multipart boundary
+                });
+
+                if (res.status === 403) throw new Error("Invalid API key");
+
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('Uploaded!', data.message);
+                    event.target.value = ''; // reset input
+                    await fetchTemplates();
+                } else {
+                    throw new Error(data.detail || 'Upload failed');
+                }
+            } catch (err) {
+                showToast('Upload Failed', err.message, 'error');
+            } finally {
+                indicator.classList.add('hidden');
             }
         }
 
@@ -785,13 +988,30 @@
             const loader = document.getElementById('loadingIndicator');
             const tenantName = document.getElementById('tenantName').value.trim().toLowerCase();
             const theme = document.getElementById('theme').value;
+            const siteType = document.getElementById('siteType').value;
+            const template = document.getElementById('template').value || null;
 
             btn.classList.add('hidden');
             loader.classList.remove('hidden');
 
             try {
-                const res = await apiCall(`${CONFIG.API_BASE}/create-store`, 'POST', { tenant_name: tenantName, theme });
+                const res = await apiCall(`${CONFIG.API_BASE}/create-store`, 'POST', {
+                    tenant_name: tenantName,
+                    theme,
+                    site_type: siteType,
+                    template
+                });
                 const data = await res.json();
+
+                if (res.ok && template) {
+                    // Try to assign the custom template immediately after creation
+                    try {
+                        const assignRes = await apiCall(`${CONFIG.API_BASE}/tenants/${tenantName}/template?template_name=${template}`, 'POST');
+                        // Intentionally swallowing assignment errors, the store was still created
+                        if (!assignRes.ok) console.error("Template assignment failed:", await assignRes.text());
+                    } catch (e) { console.error("Could not assign template", e); }
+                }
+
                 if (res.ok) {
                     document.getElementById('createStoreForm').reset();
                     showCredentialsModal(data);
@@ -826,9 +1046,24 @@
             }
         }
 
+        // --- Tab Switching ---
+        function switchTab(tabId) {
+            document.getElementById('sites-view').classList.toggle('hidden', tabId !== 'sites');
+            document.getElementById('templates-view').classList.toggle('hidden', tabId !== 'templates');
+
+            document.getElementById('tab-sites').className = tabId === 'sites'
+                ? 'px-2 py-3 text-white font-medium border-b-2 border-brand-500 transition-colors'
+                : 'px-2 py-3 text-slate-400 hover:text-slate-200 font-medium border-b-2 border-transparent transition-colors';
+
+            document.getElementById('tab-templates').className = tabId === 'templates'
+                ? 'px-2 py-3 text-white font-medium border-b-2 border-brand-500 transition-colors'
+                : 'px-2 py-3 text-slate-400 hover:text-slate-200 font-medium border-b-2 border-transparent transition-colors';
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await checkApiHealth();
             await fetchAll();
+            await fetchTemplates();
             window._refreshInterval = setInterval(fetchAll, 30000);
             setInterval(checkApiHealth, 60000);
         });

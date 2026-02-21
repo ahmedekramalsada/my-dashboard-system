@@ -1,0 +1,43 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+
+    server {
+        listen 80;
+        server_name {{TENANT_NAME}}.{{DOMAIN}};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Use Docker's internal DNS resolver for dynamic hostname resolution
+        resolver 127.0.0.11 valid=30s;
+        set $booking_backend "http://booking-{{TENANT_NAME}}:3000";
+
+        # The HTML Storefront
+        location / {
+            try_files $uri $uri/ /index.html;
+            sub_filter '</head>' '<script>window.SAAS_API=""; window.SAAS_TENANT="{{TENANT_NAME}}";</script></head>';
+            sub_filter_once on;
+        }
+
+        # Adapter Layer: Universal API -> Cal.com specific API
+        location /api/items {
+            proxy_pass $booking_backend/api/v1;
+            proxy_set_header Host $host;
+        }
+
+        # Raw access
+        location /api/raw/ {
+            rewrite ^/api/raw/(.*) /$1 break;
+            proxy_pass $booking_backend;
+            proxy_set_header Host $host;
+        }
+    }
+}

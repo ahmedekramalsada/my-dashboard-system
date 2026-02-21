@@ -107,6 +107,17 @@ curl -X POST http://api.admin.127.0.0.1.nip.io/create-store \
 
 Themes: `fashion`, `electronics`, `minimal`, `default`
 
+### Site Types (Blueprints)
+When creating a store, you can specify the `site_type`:
+
+| Type | Backend | Use Case |
+|------|---------|----------|
+| `ecommerce` | MedusaJS | Online stores with full checkout |
+| `blog` | Ghost | Content sites, newsletters, blogs |
+| `cms` | Directus | Headless CMS for custom data |
+| `static` | Nginx | Pure landing pages |
+| `booking` | Cal.com | Scheduling and appointments |
+
 The credentials modal shows the admin email + auto-generated password. Save it — it won't be shown again.
 
 **Admin is ready after ~3 minutes** (Medusa runs database migrations on first start).
@@ -317,9 +328,12 @@ docker compose up -d saas-api saas-dashboard
     │   ├── core/config.py        ← Settings (reads from .env)
     │   ├── services/
     │   │   ├── db.py             ← Postgres pool + tenant DB lifecycle
-    │   │   └── provisioner.py    ← Docker Compose orchestration
-    │   └── blueprints/default/
-    │       └── docker-compose.yml ← Per-tenant container template
+    │   │   └── provisioner.py    ← Docker Compose orchestration (multi-blueprint)
+    │   └── blueprints/           ← Per-site-type container templates
+    │       ├── ecommerce/        ← MedusaJS + Nginx Storefront
+    │       ├── blog/             ← Ghost + Nginx Storefront
+    │       ├── cms/              ← Directus + Nginx Storefront
+    │       └── booking/          ← Cal.com + Nginx Storefront
     └── tenant-blueprint/medusa/
         └── build_medusa_base.sh  ← One-time base image builder
 ```

@@ -1,0 +1,88 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+
+    server {
+        listen 80;
+        server_name {{TENANT_NAME}}.{{DOMAIN}};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Use Docker's internal DNS resolver for dynamic hostname resolution
+        resolver 127.0.0.11 valid=30s;
+        set $medusa_backend "http://medusa-{{TENANT_NAME}}:9000";
+
+        # The HTML Storefront
+        location / {
+            try_files $uri $uri/ /index.html;
+            
+            # Inject CSS configuration variables via sub_filter if needed
+            sub_filter '</head>' '<script>window.SAAS_API=""; window.SAAS_TENANT="{{TENANT_NAME}}";</script></head>';
+            sub_filter_once on;
+        }
+
+        # Adapter Layer: Universal API -> Backend specific API
+        location /api/items {
+            # MEDUSA_API_KEY_PLACEHOLDER
+            proxy_pass $medusa_backend/store/products;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location ~ ^/api/items/(.*)$ {
+            set $item_id $1;
+            # MEDUSA_API_KEY_PLACEHOLDER
+            proxy_pass $medusa_backend/store/products/$item_id;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+
+        location /api/categories {
+            # MEDUSA_API_KEY_PLACEHOLDER
+            proxy_pass $medusa_backend/store/product-categories;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        # Proxy anything else straight to Medusa API if they want raw access
+        location /api/raw/ {
+            rewrite ^/api/raw/(.*) /$1 break;
+            proxy_pass $medusa_backend;
+            proxy_set_header Host $host;
+        }
+
+        # Medusa v2 Store & Auth API
+        location /store/ {
+            proxy_pass $medusa_backend/store/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /auth/ {
+            proxy_pass $medusa_backend/auth/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # Serve Medusa uploaded images (thumbnails, product images)
+        # Medusa stores them at /app/uploads, served at /uploads/
+        location /uploads/ {
+            proxy_pass $medusa_backend/uploads/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            # Cache images for 30 days in the browser
+            add_header Cache-Control "public, max-age=2592000, immutable";
+        }
+    }
+}

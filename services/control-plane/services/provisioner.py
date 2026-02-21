@@ -196,21 +196,84 @@ def generate_storefront_html(tenant_name: str, theme: str, domain: str) -> str:
     </footer>
 
     <script>
-        async function loadProducts() {{
+        let cartId = localStorage.getItem('cart_id');
+
+        async function updateCartCount() {
+            if (!cartId) return;
+            try {
+                const res = await fetch(`/store/carts/${cartId}`);
+                if (res.ok) {
+                    const { cart } = await res.json();
+                    const count = cart.items?.reduce((all, item) => all + item.quantity, 0) || 0;
+                    document.querySelector('.cart-btn').innerText = `🛒 Cart (${count})`;
+                }
+            } catch (e) { console.error("Cart update failed", e); }
+        }
+
+        async function createCart() {
+            try {
+                // Medusa v2 Create Cart
+                const res = await fetch('/store/carts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const { cart } = await res.json();
+                cartId = cart.id;
+                localStorage.setItem('cart_id', cartId);
+                return cartId;
+            } catch (e) {
+                console.error("Failed to create cart", e);
+            }
+        }
+
+        async function addToCart(variantId) {
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'adding...';
+            btn.disabled = true;
+
+            try {
+                if (!cartId) await createCart();
+                
+                // Medusa v2 Add Line Item
+                const res = await fetch(`/store/carts/${cartId}/line-items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ variant_id: variantId, quantity: 1 })
+                });
+
+                if (res.ok) {
+                    await updateCartCount();
+                    btn.innerText = 'Added! ✅';
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error('Add failed');
+                }
+            } catch (e) {
+                alert("Could not add to cart. Is the backend ready?");
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function loadProducts() {
             const grid = document.getElementById('products-grid');
-            try {{
-                const res = await fetch('{api_url}/store/products', {{
-                    headers: {{ 'x-publishable-api-key': '' }}
-                }});
+            try {
+                // Calls via Nginx proxy — the proxy injects the publishable API key automatically
+                const res = await fetch('/api/items');
                 if (!res.ok) throw new Error('API not ready');
-                const {{ products }} = await res.json();
+                const { products } = await res.json();
 
-                if (!products || products.length === 0) {{
-                    grid.innerHTML = `<div class="empty-state"><h3>No products yet</h3><p>Add products from your <a href="{admin_url}" target="_blank" style="color: var(--primary)">admin panel</a>.</p></div>`;
+                if (!products || products.length === 0) {
+                    grid.innerHTML = `<div class="empty-state"><h3>No products yet</h3><p>Add products from your <a href="${admin_url}" target="_blank" style="color: var(--primary)">admin panel</a>.</p></div>`;
                     return;
-                }}
+                }
 
-                grid.innerHTML = products.map(p => {{
+                grid.innerHTML = products.map(p => {
                     const variant = p.variants?.[0];
                     const price = variant?.calculated_price?.calculated_amount;
                     const currency = variant?.calculated_price?.currency_code?.toUpperCase() || 'USD';
@@ -219,20 +282,22 @@ def generate_storefront_html(tenant_name: str, theme: str, domain: str) -> str:
                     return `
                         <div class="product-card">
                             <div class="product-img">
-                                ${{thumbnail ? `<img src="${{thumbnail}}" alt="${{p.title}}" style="width:100%;height:100%;object-fit:cover;">` : '{t["emoji"]}'}}
+                                ${thumbnail ? `<img src="${thumbnail}" alt="${p.title}" style="width:100%;height:100%;object-fit:cover;">` : '{t["emoji"]}'}
                             </div>
                             <div class="product-info">
-                                <div class="product-title">${{p.title}}</div>
-                                <div class="product-price">${{formattedPrice}}</div>
-                                <button class="add-to-cart" onclick="alert('Cart integration coming soon!')">Add to Cart</button>
+                                <div class="product-title">${p.title}</div>
+                                <div class="product-price">${formattedPrice}</div>
+                                <button class="add-to-cart" onclick="addToCart('${variant?.id}')">Add to Cart</button>
                             </div>
                         </div>`;
-                }}).join('');
-            }} catch (err) {{
-                grid.innerHTML = `<div class="empty-state"><h3>Store is starting up…</h3><p>Check back in a few seconds or visit your <a href="{admin_url}" target="_blank" style="color: var(--primary)">admin panel</a> to add products.</p></div>`;
-            }}
-        }}
+                }).join('');
+            } catch (err) {
+                grid.innerHTML = `<div class="empty-state"><h3>Store is starting up…</h3><p>Check back in a few seconds or visit your <a href="${admin_url}" target="_blank" style="color: var(--primary)">admin panel</a> to add products.</p></div>`;
+            }
+        }
+        
         loadProducts();
+        updateCartCount();
     </script>
 </body>
 </html>"""
@@ -248,7 +313,7 @@ class Provisioner(ABC):
         pass
 
     @abstractmethod
-    def start_tenant(self, tenant_name: str, theme: str, db_credentials: dict) -> bool:
+    def start_tenant(self, tenant_name: str, theme: str, db_credentials: dict, site_type: str = "ecommerce") -> bool:
         pass
 
     @abstractmethod
@@ -309,9 +374,9 @@ class LocalDockerProvisioner(Provisioner):
             result.append({"id": c.short_id, "name": c.name, "status": c.status, "health": health})
         return result
 
-    def start_tenant(self, tenant_name: str, theme: str, db_credentials: dict) -> bool:
-        tenant_dir = self._copy_blueprint(tenant_name)
-        env_vars = self._render_env_file(tenant_dir, tenant_name, theme, db_credentials)
+    def start_tenant(self, tenant_name: str, theme: str, db_credentials: dict, site_type: str = "ecommerce") -> bool:
+        tenant_dir = self._copy_blueprint(tenant_name, site_type)
+        env_vars = self._render_env_file(tenant_dir, tenant_name, theme, db_credentials, site_type)
         self._render_storefront(tenant_dir, tenant_name, theme)
 
         logger.info(json.dumps({"event": "docker_compose_up", "tenant": tenant_name, "dir": tenant_dir}))
@@ -397,6 +462,21 @@ class LocalDockerProvisioner(Provisioner):
             logger.error(json.dumps({"event": "container_never_healthy", "tenant": tenant_name}))
             raise Exception(f"Container {container_name} never became healthy for admin seeding")
 
+        # Delete the user if they already exist so we can recreate them with the new password
+        try:
+            db_name = f"db_{tenant_name}"
+            subprocess.run(
+                [
+                    "docker", "exec", "shared-postgres", 
+                    "psql", "-U", "root", "-d", db_name, 
+                    "-c", f"DELETE FROM auth_identity WHERE id IN (SELECT auth_identity_id FROM provider_identity WHERE entity_id='{email}'); DELETE FROM \"user\" WHERE email='{email}';"
+                ],
+                capture_output=True, timeout=15
+            )
+            logger.info(json.dumps({"event": "cleared_existing_admin", "tenant": tenant_name, "email": email}))
+        except Exception as e:
+            logger.warning(f"Could not clear existing admin before seeding: {e}")
+
         # Seed the user
         try:
             result = subprocess.run(
@@ -411,6 +491,54 @@ class LocalDockerProvisioner(Provisioner):
                 raise Exception(f"Admin seed failed: {result.stderr}")
         except subprocess.TimeoutExpired:
             raise Exception(f"Admin seeding timed out for tenant: {tenant_name}")
+
+    def fetch_and_inject_publishable_key(self, tenant_name: str) -> bool:
+        """
+        Retrieves the publishable API key auto-generated by Medusa and injects it 
+        into the live Storefront Nginx container so the frontend can query products.
+        """
+        logger.info(json.dumps({"event": "fetching_publishable_key", "tenant": tenant_name}))
+        db_name = f"db_{tenant_name.replace('-', '_')}"
+        
+        # Poll the database for up to 30 seconds since migrations might be running
+        for _ in range(30):
+            try:
+                result = subprocess.run(
+                    [
+                        "docker", "exec", "shared-postgres", 
+                        "psql", "-U", "root", "-d", db_name, "-t", "-c", 
+                        "SELECT token FROM api_key WHERE type='publishable' LIMIT 1;"
+                    ],
+                    capture_output=True, text=True, timeout=10
+                )
+                token = result.stdout.strip()
+                if token.startswith("pk_"):
+                    # We got the token! Inject it into the Nginx container
+                    storefront_container = f"storefront-{tenant_name}"
+                    # Modify the Nginx configuration file directly using Python because 
+                    # running `sed -i` fails on Docker bind mounts (device or resource busy)
+                    nginx_conf_path = os.path.join(settings.TENANTS_DIR, tenant_name, "storefront-nginx.conf")
+                    if os.path.exists(nginx_conf_path):
+                        with open(nginx_conf_path, "r") as f:
+                            conf_data = f.read()
+                        
+                        conf_data = conf_data.replace('window.SAAS_API=""', f'window.SAAS_API="{token}"')
+                        conf_data = conf_data.replace('# MEDUSA_API_KEY_PLACEHOLDER', f'proxy_set_header x-publishable-api-key "{token}";')
+                        
+                        with open(nginx_conf_path, "w") as f:
+                            f.write(conf_data)
+                    
+                    # Reload the Nginx container to apply the changes
+                    reload_cmd = ["docker", "exec", storefront_container, "nginx", "-s", "reload"]
+                    subprocess.run(reload_cmd, capture_output=True, timeout=10)
+                    logger.info(json.dumps({"event": "publishable_key_injected", "tenant": tenant_name, "token_prefix": token[:10]}))
+                    return True
+            except Exception as e:
+                logger.warning(f"Error checking publishable key: {e}")
+            time.sleep(5)
+            
+        logger.error(json.dumps({"event": "publishable_key_timeout", "tenant": tenant_name}))
+        return False
 
     def suspend_tenant(self, tenant_name: str) -> bool:
         """Stop tenant containers without removing data or volumes."""
@@ -460,8 +588,8 @@ class LocalDockerProvisioner(Provisioner):
 
     # --- Private helpers ---
 
-    def _copy_blueprint(self, tenant_name: str) -> str:
-        blueprint_src = os.path.join(os.path.dirname(__file__), "..", "blueprints", "default")
+    def _copy_blueprint(self, tenant_name: str, site_type: str = "ecommerce") -> str:
+        blueprint_src = os.path.join(os.path.dirname(__file__), "..", "blueprints", site_type)
         blueprint_src = os.path.abspath(blueprint_src)
         tenant_dir = os.path.join(settings.TENANTS_DIR, tenant_name)
 
@@ -472,9 +600,20 @@ class LocalDockerProvisioner(Provisioner):
             shutil.rmtree(tenant_dir)
 
         shutil.copytree(blueprint_src, tenant_dir)
+        
+        # Substitute {{TENANT_NAME}} inside docker-compose.yml so that
+        # dynamic identifiers (e.g. volume names) are resolved before Docker validates the file
+        compose_path = os.path.join(tenant_dir, "docker-compose.yml")
+        if os.path.exists(compose_path):
+            with open(compose_path, "r") as f:
+                compose_content = f.read()
+            compose_content = compose_content.replace("{{TENANT_NAME}}", tenant_name)
+            with open(compose_path, "w") as f:
+                f.write(compose_content)
+        
         return tenant_dir
 
-    def _render_env_file(self, tenant_dir: str, tenant_name: str, theme: str, db_credentials: dict) -> dict:
+    def _render_env_file(self, tenant_dir: str, tenant_name: str, theme: str, db_credentials: dict, site_type: str = "ecommerce") -> dict:
         """Generate .env with unique cryptographic secrets per tenant."""
         jwt_secret = secrets.token_hex(32)
         cookie_secret = secrets.token_hex(32)
@@ -494,7 +633,9 @@ DB_NAME={context['DB_NAME']}
 DB_USER={context['DB_USER']}
 DB_PASSWORD={context['DB_PASSWORD']}
 THEME={context['THEME']}
-
+"""
+        if site_type == "ecommerce":
+            env_content += f"""
 # Medusa specific variables
 DATABASE_URL=postgres://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}?sslmode=disable
 REDIS_URL=redis://redis-{context['TENANT_NAME']}:6379
@@ -504,7 +645,45 @@ ADMIN_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
 AUTH_CORS=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']},http://{context['TENANT_NAME']}.{context['DOMAIN']}
 JWT_SECRET={jwt_secret}
 COOKIE_SECRET={cookie_secret}
+# BACKEND_URL: Medusa prefixes uploaded image URLs with this value
+BACKEND_URL=http://{context['TENANT_NAME']}.{context['DOMAIN']}
 """
+        elif site_type == "cms":
+            env_content += f"""
+# Directus specific variables
+KEY={secrets.token_hex(16)}
+SECRET={secrets.token_hex(16)}
+DB_CLIENT=pg
+DB_HOST={context['DB_HOST']}
+DB_PORT={context['DB_PORT']}
+DB_DATABASE={context['DB_NAME']}
+DB_USER={context['DB_USER']}
+DB_PASSWORD={context['DB_PASSWORD']}
+PUBLIC_URL=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
+"""
+        elif site_type == "blog":
+            env_content += f"""
+# Ghost specific variables
+database__client=pg
+database__connection__host={context['DB_HOST']}
+database__connection__port={context['DB_PORT']}
+database__connection__user={context['DB_USER']}
+database__connection__password={context['DB_PASSWORD']}
+database__connection__database={context['DB_NAME']}
+url=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
+"""
+        elif site_type == "booking":
+            env_content += f"""
+# Cal.com specific variables
+DATABASE_URL=postgresql://{context['DB_USER']}:{context['DB_PASSWORD']}@{context['DB_HOST']}:{context['DB_PORT']}/{context['DB_NAME']}?sslmode=disable
+NEXTAUTH_SECRET={secrets.token_hex(32)}
+CALENDSO_ENCRYPTION_KEY={secrets.token_hex(24)}
+NEXT_PUBLIC_WEBAPP_URL=http://admin.{context['TENANT_NAME']}.{context['DOMAIN']}
+"""
+        elif site_type == "static":
+            # Just default vars already included
+            pass
+            
         env_path = os.path.join(tenant_dir, ".env")
         with open(env_path, "w") as f:
             f.write(env_content)
@@ -513,11 +692,28 @@ COOKIE_SECRET={cookie_secret}
 
     def _render_storefront(self, tenant_dir: str, tenant_name: str, theme: str) -> None:
         """Generate a themed storefront HTML file and mount it into Nginx."""
+        # Note: If custom template was supplied, it's copied over right after creation,
+        # but here we generate the initial one or the default one.
         html = generate_storefront_html(tenant_name, theme, settings.DOMAIN)
         storefront_path = os.path.join(tenant_dir, "storefront.html")
         with open(storefront_path, "w") as f:
             f.write(html)
         logger.info(json.dumps({"event": "storefront_html_generated", "tenant": tenant_name, "theme": theme}))
+
+        # Generate Nginx Config
+        nginx_template_path = os.path.join(tenant_dir, "storefront-nginx.conf.template")
+        nginx_out_path = os.path.join(tenant_dir, "storefront-nginx.conf")
+        
+        if os.path.exists(nginx_template_path):
+            with open(nginx_template_path, "r") as f:
+                nginx_config = f.read()
+            
+            nginx_config = nginx_config.replace("{{TENANT_NAME}}", tenant_name)
+            nginx_config = nginx_config.replace("{{DOMAIN}}", settings.DOMAIN)
+            
+            with open(nginx_out_path, "w") as f:
+                f.write(nginx_config)
+            logger.info(json.dumps({"event": "nginx_config_generated", "tenant": tenant_name}))
 
 
 # ---------------------------------------------------------------------------

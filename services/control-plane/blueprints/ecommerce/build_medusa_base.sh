@@ -15,9 +15,48 @@ git clone --depth 1 https://github.com/medusajs/medusa-starter-default.git "$BUI
 
 cd "$BUILD_DIR"
 
-# Inject dynamic cookieOptions to support local HTTP development
-echo "=> Injecting dynamic cookieOptions into medusa-config.ts..."
-sed -i.bak 's/databaseUrl: process.env.DATABASE_URL,/databaseUrl: process.env.DATABASE_URL,\n    cookieOptions: { secure: process.env.SECURE_COOKIES === "true", sameSite: process.env.SECURE_COOKIES === "true" ? "none" : "lax" },/' medusa-config.ts
+# Inject dynamic configuration into medusa-config.ts
+echo "=> Configuring medusa-config.ts..."
+cat > medusa-config.ts << 'EOF'
+import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+
+loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+module.exports = defineConfig({
+  projectConfig: {
+    databaseUrl: process.env.DATABASE_URL,
+    cookieOptions: { 
+      secure: process.env.SECURE_COOKIES === "true", 
+      sameSite: process.env.SECURE_COOKIES === "true" ? "none" : "lax" 
+    },
+    http: {
+      storeCors: process.env.STORE_CORS!,
+      adminCors: process.env.ADMIN_CORS!,
+      authCors: process.env.AUTH_CORS!,
+      jwtSecret: process.env.JWT_SECRET || "supersecret",
+      cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+    }
+  },
+  modules: [
+    {
+      resolve: "@medusajs/medusa/file",
+      options: {
+        providers: [
+          {
+            resolve: "@medusajs/medusa/file-local",
+            id: "local",
+            options: {
+              config: {
+                backend_url: process.env.BACKEND_URL || "http://localhost:9000"
+              },
+            },
+          },
+        ],
+      },
+    }
+  ]
+})
+EOF
 
 # Create start.sh script
 echo "=> Creating start.sh..."

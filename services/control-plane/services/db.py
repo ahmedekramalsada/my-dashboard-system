@@ -57,6 +57,7 @@ async def ensure_tenant_registry():
             CREATE TABLE IF NOT EXISTS tenants (
                 name         TEXT PRIMARY KEY,
                 theme        TEXT NOT NULL DEFAULT 'fashion',
+                site_type    TEXT NOT NULL DEFAULT 'ecommerce',
                 admin_email  TEXT NOT NULL,
                 created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
                 db_name      TEXT NOT NULL,
@@ -66,25 +67,27 @@ async def ensure_tenant_registry():
         """)
         # Add status column to existing deployments that don't have it
         await conn.execute("""
-            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'running'
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'running';
+            ALTER TABLE tenants ADD COLUMN IF NOT EXISTS site_type TEXT NOT NULL DEFAULT 'ecommerce';
         """)
     logger.info("Tenant registry table ensured.")
 
 
-async def register_tenant(tenant_name: str, theme: str, admin_email: str, db_name: str, db_user: str):
+async def register_tenant(tenant_name: str, site_type: str, theme: str, admin_email: str, db_name: str, db_user: str):
     pool = await get_pool()
     async with pool.acquire() as conn:
         await conn.execute("""
-            INSERT INTO tenants (name, theme, admin_email, created_at, db_name, db_user, status)
-            VALUES ($1, $2, $3, $4, $5, $6, 'running')
+            INSERT INTO tenants (name, site_type, theme, admin_email, created_at, db_name, db_user, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'running')
             ON CONFLICT (name) DO UPDATE
-              SET theme       = EXCLUDED.theme,
+              SET site_type   = EXCLUDED.site_type,
+                  theme       = EXCLUDED.theme,
                   admin_email = EXCLUDED.admin_email,
                   created_at  = EXCLUDED.created_at,
                   db_name     = EXCLUDED.db_name,
                   db_user     = EXCLUDED.db_user,
                   status      = 'running'
-        """, tenant_name, theme, admin_email, datetime.now(timezone.utc), db_name, db_user)
+        """, tenant_name, site_type, theme, admin_email, datetime.now(timezone.utc), db_name, db_user)
 
 
 async def deregister_tenant(tenant_name: str):
@@ -103,7 +106,7 @@ async def list_tenants() -> list[dict]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
-            "SELECT name, theme, admin_email, created_at, db_name, db_user, status "
+            "SELECT name, site_type, theme, admin_email, created_at, db_name, db_user, status "
             "FROM tenants ORDER BY created_at DESC"
         )
         return [dict(r) for r in rows]

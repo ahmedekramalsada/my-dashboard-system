@@ -1,0 +1,54 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+
+    server {
+        listen 80;
+        server_name {{TENANT_NAME}}.{{DOMAIN}};
+
+        root /usr/share/nginx/html;
+        index index.html;
+
+        # Use Docker's internal DNS resolver for dynamic hostname resolution
+        resolver 127.0.0.11 valid=30s;
+        set $cms_backend "http://directus-{{TENANT_NAME}}:8055";
+
+        # The HTML Storefront
+        location / {
+            try_files $uri $uri/ /index.html;
+            
+            # Inject SAAS context for JS
+            sub_filter '</head>' '<script>window.SAAS_API=""; window.SAAS_TENANT="{{TENANT_NAME}}";</script></head>';
+            sub_filter_once on;
+        }
+
+        # Adapter Layer: Universal API -> Directus specific API
+        location /api/items {
+            proxy_pass $cms_backend/items;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        # Serve Directus assets/images
+        location /assets/ {
+            proxy_pass $cms_backend/assets/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+        }
+        
+        # Raw access to Directus if needed
+        location /api/raw/ {
+            rewrite ^/api/raw/(.*) /$1 break;
+            proxy_pass $cms_backend;
+            proxy_set_header Host $host;
+        }
+    }
+}

@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Tenant data directory (inside the container)
     TENANTS_DIR: str = os.getenv("TENANTS_DIR", "/opt/saas/tenants")
 
+    # Templates directory (inside the container)
+    TEMPLATES_DIR: str = os.getenv("TEMPLATES_DIR", "/opt/saas/templates")
+
     # API Key — required as X-API-Key header on all write endpoints
     # Generate: openssl rand -hex 32
     API_KEY: str = os.getenv("API_KEY", "")

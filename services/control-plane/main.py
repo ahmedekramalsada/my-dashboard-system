@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Security, Request
+from fastapi import FastAPI, HTTPException, Depends, Security, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.responses import JSONResponse
@@ -11,6 +11,7 @@ from core.config import settings
 import logging
 import json
 import re
+import os
 import secrets
 import threading
 from services.db import (
@@ -73,6 +74,10 @@ async def lifespan(app: FastAPI):
     logger.info("Startup — initialising DB pool and tenant registry...")
     await get_pool()               # warm up the connection pool
     await ensure_tenant_registry() # create tenants table if missing
+    
+    # Ensure template directory exists
+    os.makedirs(settings.TEMPLATES_DIR, exist_ok=True)
+    
     logger.info("Startup complete.")
     yield
     logger.info("Shutdown — closing DB pool...")
@@ -108,6 +113,8 @@ TENANT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9\-]{1,28}[a-z0-9]$")
 class TenantCreate(BaseModel):
     tenant_name: str
     theme: str = "fashion"
+    site_type: str = "ecommerce"
+    template: str | None = None
 
     @field_validator("tenant_name")
     @classmethod
@@ -126,6 +133,15 @@ class TenantCreate(BaseModel):
         allowed = {"fashion", "electronics", "minimal", "default"}
         if v not in allowed:
             raise ValueError(f"theme must be one of: {', '.join(allowed)}")
+        return v
+        
+    @field_validator("site_type")
+    @classmethod
+    def validate_site_type(cls, v: str) -> str:
+        # We will add more types as we build their blueprints
+        allowed = {"ecommerce", "blog", "cms", "static", "booking"}
+        if v not in allowed:
+            raise ValueError(f"site_type must be one of: {', '.join(allowed)}")
         return v
 
 class TenantDelete(BaseModel):
@@ -173,7 +189,9 @@ async def stores_status():
 async def create_store(request: Request, tenant_config: TenantCreate):
     tenant_name = tenant_config.tenant_name
     theme = tenant_config.theme
-    logger.info(json.dumps({"event": "create_store_requested", "tenant": tenant_name, "theme": theme}))
+    site_type = tenant_config.site_type
+    template = tenant_config.template
+    logger.info(json.dumps({"event": "create_store_requested", "tenant": tenant_name, "theme": theme, "site_type": site_type}))
 
     try:
         db_creds = await provision_tenant_db(tenant_name)
@@ -182,13 +200,17 @@ async def create_store(request: Request, tenant_config: TenantCreate):
             tenant_name=tenant_name,
             theme=theme,
             db_credentials=db_creds,
+            site_type=site_type,
         )
 
         admin_email = f"admin@{tenant_name}.com"
-        admin_password = secrets.token_urlsafe(14)
+        import string
+        alphabet = string.ascii_letters + string.digits
+        admin_password = "".join(secrets.choice(alphabet) for _ in range(16))
 
         await register_tenant(
             tenant_name=tenant_name,
+            site_type=site_type,
             theme=theme,
             admin_email=admin_email,
             db_name=db_creds["DB_NAME"],
@@ -196,17 +218,21 @@ async def create_store(request: Request, tenant_config: TenantCreate):
         )
 
         def seed_in_background():
-            try:
-                active_provisioner.seed_admin_user(tenant_name, admin_email, admin_password)
-                logger.info(json.dumps({"event": "auto_seed_complete", "tenant": tenant_name}))
-            except Exception as seed_err:
-                logger.error(json.dumps({"event": "auto_seed_failed", "tenant": tenant_name, "error": str(seed_err)}))
+            if site_type == "ecommerce":
+                try:
+                    active_provisioner.seed_admin_user(tenant_name, admin_email, admin_password)
+                    active_provisioner.fetch_and_inject_publishable_key(tenant_name)
+                    logger.info(json.dumps({"event": "auto_seed_complete", "tenant": tenant_name}))
+                except Exception as seed_err:
+                    logger.error(json.dumps({"event": "auto_seed_failed", "tenant": tenant_name, "error": str(seed_err)}))
+            else:
+                logger.info(json.dumps({"event": "auto_seed_skipped", "tenant": tenant_name, "site_type": site_type}))
 
         threading.Thread(target=seed_in_background, daemon=True).start()
 
         return {
             "status": "success",
-            "message": f"Store '{tenant_name}' provisioned. Admin seeding in background (~60s).",
+            "message": f"Store '{tenant_name}' provisioned. Backend starting.",
             "subdomains": {
                 "storefront": f"http://{tenant_name}.{settings.DOMAIN}",
                 "admin": f"http://admin.{tenant_name}.{settings.DOMAIN}/app",
@@ -247,6 +273,69 @@ async def seed_admin(tenant_name: str, body: SeedAdminRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Routes — Templates (API key protected)
+# ─────────────────────────────────────────────────────────────────────────────
+@app.get("/templates", dependencies=[Depends(require_api_key)])
+async def list_templates():
+    """List all available custom HTML templates."""
+    try:
+        templates = []
+        if os.path.exists(settings.TEMPLATES_DIR):
+            for file in os.listdir(settings.TEMPLATES_DIR):
+                if file.endswith(".html"):
+                    path = os.path.join(settings.TEMPLATES_DIR, file)
+                    templates.append({
+                        "name": file,
+                        "size": os.path.getsize(path),
+                        "modified": os.path.getmtime(path)
+                    })
+        return {"templates": templates}
+    except Exception as e:
+        logger.error(f"Error listing templates: {e}")
+        raise HTTPException(status_code=500, detail="Could not list templates")
+
+
+@app.post("/templates", dependencies=[Depends(require_api_key)])
+async def upload_template(file: UploadFile = File(...)):
+    """Upload a new custom HTML template."""
+    if not file.filename.endswith(".html"):
+        raise HTTPException(status_code=400, detail="Only .html files are allowed")
+    
+    # Sanitize filename
+    safe_filename = re.sub(r'[^a-zA-Z0-9_\-.]', '_', file.filename)
+    dest_path = os.path.join(settings.TEMPLATES_DIR, safe_filename)
+    
+    try:
+        content = await file.read()
+        with open(dest_path, "wb") as f:
+            f.write(content)
+        return {"status": "success", "message": f"Template {safe_filename} uploaded successfully"}
+    except Exception as e:
+        logger.error(f"Error saving template {safe_filename}: {e}")
+        raise HTTPException(status_code=500, detail="Could not save template")
+
+
+@app.post("/tenants/{tenant_name}/template", dependencies=[Depends(require_api_key)])
+async def assign_template(tenant_name: str, template_name: str):
+    """Assign an uploaded template to an active tenant's storefront."""
+    template_path = os.path.join(settings.TEMPLATES_DIR, template_name)
+    if not os.path.exists(template_path):
+        raise HTTPException(status_code=404, detail="Template not found")
+        
+    tenant_storefront_path = os.path.join(settings.TENANTS_DIR, tenant_name, "storefront.html")
+    if not os.path.exists(os.path.dirname(tenant_storefront_path)):
+        raise HTTPException(status_code=404, detail="Tenant directory not found")
+        
+    try:
+        # Copy the template to the tenant's storefront.html location (which is volumed-mounted)
+        import shutil
+        shutil.copyfile(template_path, tenant_storefront_path)
+        return {"status": "success", "message": f"Template {template_name} assigned to {tenant_name}"}
+    except Exception as e:
+        logger.error(f"Error assigning template to {tenant_name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/tenants/{tenant_name}/suspend", dependencies=[Depends(require_api_key)])
 async def suspend_tenant(tenant_name: str):

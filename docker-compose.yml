@@ -73,6 +73,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /opt/saas/tenants:/opt/saas/tenants
+      - /opt/saas/templates:/opt/saas/templates
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
